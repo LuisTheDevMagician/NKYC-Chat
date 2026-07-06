@@ -1,29 +1,31 @@
-import type { Database } from "bun:sqlite";
+import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
 
-export function applySchema(database: Database): void {
-  database.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT NOT NULL UNIQUE,
-      salt TEXT NOT NULL,
-      password_hash TEXT NOT NULL,
-      created_at INTEGER NOT NULL
-    );
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  username: text("username").notNull().unique(),
+  salt: text("salt").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
 
-    CREATE TABLE IF NOT EXISTS sessions (
-      token TEXT PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      expires_at INTEGER NOT NULL
-    );
+export const sessions = sqliteTable("sessions", {
+  token: text("token").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  expiresAt: integer("expires_at").notNull(),
+});
 
-    CREATE TABLE IF NOT EXISTS messages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      from_user_id INTEGER NOT NULL REFERENCES users(id),
-      to_user_id INTEGER NOT NULL REFERENCES users(id),
-      ciphertext TEXT NOT NULL,
-      encrypted_aes_key TEXT NOT NULL,
-      iv TEXT NOT NULL,
-      created_at INTEGER NOT NULL
-    );
-  `);
-}
+export const messages = sqliteTable("messages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  fromUserId: integer("from_user_id")
+    .notNull()
+    .references(() => users.id),
+  toUserId: integer("to_user_id")
+    .notNull()
+    .references(() => users.id),
+  ciphertext: text("ciphertext").notNull(),
+  encryptedAesKey: text("encrypted_aes_key").notNull(),
+  iv: text("iv").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
