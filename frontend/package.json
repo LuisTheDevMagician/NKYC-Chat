@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
+    "@tsparticles/react": "^4.3.1",
+    "@tsparticles/slim": "^4.3.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.23.0",
@@ -36,6 +38,7 @@
     "unrs-resolver"
   ],
   "trustedDependencies": [
+    "@tsparticles/engine",
     "sharp",
     "unrs-resolver"
   ]
