@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+build/
+dist/
+.vercel/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Env & local data
+.env
+.env.*
+*.db
+*.sqlite
+
+# Logs & artifacts
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
+*.trace
+*.zip
+*.tar.gz
+*.tgz
+package-lock.json
+
+# Coverage
+coverage/
+
+# Editor/OS
+.DS_Store
+*.pem
