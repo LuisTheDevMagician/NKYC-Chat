@@ -39,6 +39,8 @@ export const authModule = new Elysia({ prefix: "/auth" })
         cookie.session.set({
           value: token,
           httpOnly: true,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
           maxAge: config.sessionTtlMs / 1000,
           path: "/",
         });
@@ -56,6 +58,7 @@ export const authModule = new Elysia({ prefix: "/auth" })
       if (cookie.session?.value) {
         sessionsRepository.deleteByToken(cookie.session.value);
       }
+      cookie.session.path = "/";
       cookie.session.remove();
       return { ok: true };
     },
