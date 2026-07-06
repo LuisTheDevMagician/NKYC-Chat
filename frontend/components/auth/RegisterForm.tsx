@@ -1,0 +1,65 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+
+export function RegisterForm() {
+  const { register, loading, error } = useAuth();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    void register(username, password);
+  }
+
+  return (
+    <Card className="w-full max-w-sm border-border bg-card">
+      <CardHeader>
+        <CardTitle className="font-heading text-2xl text-foreground">Criar conta — NKYC Chat</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="username">Usuário</Label>
+            <Input
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              minLength={3}
+              maxLength={32}
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="password">Senha</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={8}
+              maxLength={128}
+              required
+            />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" disabled={loading}>
+            {loading ? "Criando conta..." : "Criar conta"}
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            Já tem conta?{" "}
+            <Link href="/login" className="text-primary underline">
+              Entrar
+            </Link>
+          </p>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
