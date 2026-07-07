@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { networkInterfaces } from "node:os";
+
+function getLocalNetworkOrigins(): string[] {
+  return Object.values(networkInterfaces())
+    .flat()
+    .filter((iface): iface is NonNullable<typeof iface> => !!iface && iface.family === "IPv4" && !iface.internal)
+    .map((iface) => iface.address);
+}
 
 function loadRootEnv(): Record<string, string> {
   try {
@@ -26,6 +34,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_API_URL: rootEnv.NEXT_PUBLIC_API_URL,
     NEXT_PUBLIC_WS_URL: rootEnv.NEXT_PUBLIC_WS_URL,
   },
+  allowedDevOrigins: getLocalNetworkOrigins(),
 };
 
 export default nextConfig;
