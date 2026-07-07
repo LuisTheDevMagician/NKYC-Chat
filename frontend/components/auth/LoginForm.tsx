@@ -50,7 +50,7 @@ export function LoginForm() {
           </Button>
           <p className="text-sm text-muted-foreground">
             Não tem conta?{" "}
-            <Link href="/register" className="text-primary underline">
+            <Link href="/auth/register" className="text-primary underline">
               Criar conta
             </Link>
           </p>

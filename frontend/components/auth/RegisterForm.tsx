@@ -54,7 +54,7 @@ export function RegisterForm() {
           </Button>
           <p className="text-sm text-muted-foreground">
             Já tem conta?{" "}
-            <Link href="/login" className="text-primary underline">
+            <Link href="/auth/login" className="text-primary underline">
               Entrar
             </Link>
           </p>
