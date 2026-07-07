@@ -46,6 +46,21 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --animate-glow: glow 3s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    color: var(--foreground);
+    text-shadow: 0 0 0 transparent;
+  }
+  50% {
+    color: var(--primary);
+    text-shadow:
+      0 0 16px var(--primary),
+      0 0 32px var(--primary);
+  }
 }
 
 :root {
