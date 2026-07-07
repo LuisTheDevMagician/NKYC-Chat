@@ -1,7 +1,7 @@
 <div align="center">
   <img src="frontend/public/logot.png" alt="NKYC Chat" width="140" />
 
-  # NKYC Chat
+  # NKYC Chat - No Know Your Client Chat
 
   **Chat 1:1 e em grupo com criptografia ponta a ponta**, feito em TypeScript/Bun como projeto final da
   disciplina de Segurança da Informação.
