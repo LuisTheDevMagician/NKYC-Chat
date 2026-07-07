@@ -64,6 +64,16 @@ export const chatModule = new Elysia()
 
       // respond-group-invite
       conversationsRepository.respondToInvite(event.conversationId, user.id, event.response);
+
+      // When someone accepts, the other participants' cached member lists are now
+      // stale (they don't know about the newcomer), so they'd address group messages
+      // to the wrong recipient set. Tell every accepted participant to refresh.
+      if (event.response === "accepted") {
+        const joined: ServerEvent = { type: "group-joined", conversationId: event.conversationId };
+        for (const participantId of conversationsRepository.findAcceptedParticipantIds(event.conversationId)) {
+          registry.get(participantId)?.send(joined);
+        }
+      }
     },
     close(ws) {
       const { user } = ws.data;

@@ -100,6 +100,15 @@ export function useChatSocket() {
           return;
         }
 
+        if (event.type === "group-joined") {
+          // A participant accepted — our cached member list is now stale, so refetch
+          // it. Without this, messages we send to the group won't be encrypted/addressed
+          // to the newcomer and never reach them.
+          const groups = await fetchActiveGroups();
+          if (!cancelled) setActiveGroups(groups);
+          return;
+        }
+
         if (event.type === "group-ended") {
           const conversationId = event.conversationId;
           setActiveGroups((prev) => prev.filter((g) => g.id !== conversationId));

@@ -75,4 +75,5 @@ export type ServerEvent =
       participantUsernames: string[];
     }
   | { type: "group-ended"; conversationId: number }
+  | { type: "group-joined"; conversationId: number }
   | { type: "error"; reason: string };

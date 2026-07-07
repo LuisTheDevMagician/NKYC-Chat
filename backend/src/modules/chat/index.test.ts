@@ -111,4 +111,51 @@ describe("chat gateway", () => {
     aliceWs.close();
     bobWs.close();
   });
+
+  it("notifies already-accepted participants when someone else accepts a group invite", async () => {
+    const alice = await registerAndLogin("alice-grp");
+    const bob = await registerAndLogin("bob-grp");
+
+    const aliceMessages: { type: string; conversationId?: number }[] = [];
+    const aliceWs = new WebSocket(`ws://localhost:${port}/ws`, {
+      headers: { cookie: `session=${alice.token}` },
+    } as never);
+    aliceWs.addEventListener("message", (event) => aliceMessages.push(JSON.parse(event.data as string)));
+    await new Promise<void>((resolve) => {
+      aliceWs.onopen = () => {
+        aliceWs.send(JSON.stringify({ type: "hello", publicKey: "alice-pk" }));
+        resolve();
+      };
+    });
+
+    const bobMessages: { type: string; conversationId?: number }[] = [];
+    const bobWs = new WebSocket(`ws://localhost:${port}/ws`, {
+      headers: { cookie: `session=${bob.token}` },
+    } as never);
+    bobWs.addEventListener("message", (event) => bobMessages.push(JSON.parse(event.data as string)));
+    await new Promise<void>((resolve) => {
+      bobWs.onopen = () => {
+        bobWs.send(JSON.stringify({ type: "hello", publicKey: "bob-pk" }));
+        resolve();
+      };
+    });
+
+    // alice creates a group inviting bob; bob receives the invite with its conversation id.
+    aliceWs.send(JSON.stringify({ type: "create-group", participantIds: [bob.user.id], name: "grupo" }));
+    await waitUntil(() => bobMessages.some((m) => m.type === "group-invite"));
+    const invite = bobMessages.find((m) => m.type === "group-invite")!;
+
+    // bob accepts. alice (already accepted, as creator) must be told membership changed,
+    // otherwise her cached member list stays stale and she can't address messages to bob.
+    bobWs.send(
+      JSON.stringify({ type: "respond-group-invite", conversationId: invite.conversationId, response: "accepted" })
+    );
+
+    await waitUntil(() =>
+      aliceMessages.some((m) => m.type === "group-joined" && m.conversationId === invite.conversationId)
+    );
+
+    aliceWs.close();
+    bobWs.close();
+  });
 });
