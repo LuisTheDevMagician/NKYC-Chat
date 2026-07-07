@@ -54,4 +54,17 @@ export const messagesModule = new Elysia({ prefix: "/messages" })
       return result;
     },
     { params: historyDetailParams, isAuthenticated: true }
+  )
+  .get(
+    "/participants/:conversationId",
+    ({ params, user, status }) => {
+      const result = MessagesService.getConversationParticipants(
+        conversationsRepository,
+        user.id,
+        params.conversationId
+      );
+      if (result === null) return status(404, { error: "conversation_not_found" });
+      return result;
+    },
+    { params: historyDetailParams, isAuthenticated: true }
   );

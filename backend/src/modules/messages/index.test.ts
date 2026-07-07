@@ -195,4 +195,30 @@ describe("messages module — groups", () => {
     );
     expect(malloryRes.status).toBe(404);
   });
+
+  it("returns participants (with isGroup) so the history view can label senders", async () => {
+    const alice = await registerAndLogin("alice-parts");
+    const bob = await registerAndLogin("bob-parts");
+    const mallory = await registerAndLogin("mallory-parts");
+
+    const conversationsRepository = createConversationsRepository(db);
+    const group = conversationsRepository.createGroup(alice.user.id, [bob.user.id], "Amigos");
+    conversationsRepository.respondToInvite(group.id, bob.user.id, "accepted");
+
+    const res = await messagesModule.handle(
+      new Request(`http://localhost/messages/participants/${group.id}`, { headers: { cookie: bob.cookie } })
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.isGroup).toBe(true);
+    expect(body.participants.map((p: { username: string }) => p.username).sort()).toEqual([
+      "alice-parts",
+      "bob-parts",
+    ]);
+
+    const malloryRes = await messagesModule.handle(
+      new Request(`http://localhost/messages/participants/${group.id}`, { headers: { cookie: mallory.cookie } })
+    );
+    expect(malloryRes.status).toBe(404);
+  });
 });

@@ -50,4 +50,22 @@ export abstract class MessagesService {
     if (!participants.some((p) => p.userId === userId)) return null;
     return messagesRepository.findByConversationIdForUser(conversationId, userId);
   }
+
+  // Used by the history view to label each message with its sender: a historical
+  // (ended) conversation is no longer in the client's live group list, so it can't
+  // map fromUserId -> username on its own.
+  static getConversationParticipants(
+    conversationsRepository: ConversationsRepository,
+    userId: number,
+    conversationId: number
+  ): { isGroup: boolean; participants: { id: number; username: string }[] } | null {
+    const conversation = conversationsRepository.findById(conversationId);
+    if (!conversation) return null;
+    const participants = conversationsRepository.findParticipants(conversationId);
+    if (!participants.some((p) => p.userId === userId)) return null;
+    return {
+      isGroup: conversation.isGroup,
+      participants: participants.map((p) => ({ id: p.userId, username: p.username })),
+    };
+  }
 }

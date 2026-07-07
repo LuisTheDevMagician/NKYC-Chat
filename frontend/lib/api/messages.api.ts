@@ -68,3 +68,18 @@ export async function fetchHistoryMessages(conversationId: number): Promise<Mess
   if (!response.ok) return [];
   return response.json();
 }
+
+export interface ConversationParticipantsDto {
+  isGroup: boolean;
+  participants: ActiveGroupMemberDto[];
+}
+
+export async function fetchConversationParticipants(
+  conversationId: number
+): Promise<ConversationParticipantsDto> {
+  const response = await fetch(`${API_URL}/messages/participants/${conversationId}`, {
+    credentials: "include",
+  });
+  if (!response.ok) return { isGroup: false, participants: [] };
+  return response.json();
+}
