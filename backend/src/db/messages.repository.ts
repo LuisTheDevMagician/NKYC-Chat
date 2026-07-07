@@ -1,14 +1,16 @@
-import { and, asc, eq, or } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import type { Db } from "./client";
 import { messages } from "./schema";
 
 export type MessageRow = typeof messages.$inferSelect;
 
 export interface CreateMessageInput {
+  conversationId: number;
   fromUserId: number;
   toUserId: number;
   ciphertext: string;
   encryptedAesKey: string;
+  encryptedAesKeyForSender: string;
   iv: string;
 }
 
@@ -21,16 +23,11 @@ export function createMessagesRepository(database: Db) {
         .returning()
         .get();
     },
-    findConversation(userAId: number, userBId: number): MessageRow[] {
+    findByConversationId(conversationId: number): MessageRow[] {
       return database
         .select()
         .from(messages)
-        .where(
-          or(
-            and(eq(messages.fromUserId, userAId), eq(messages.toUserId, userBId)),
-            and(eq(messages.fromUserId, userBId), eq(messages.toUserId, userAId))
-          )
-        )
+        .where(eq(messages.conversationId, conversationId))
         .orderBy(asc(messages.createdAt))
         .all();
     },
