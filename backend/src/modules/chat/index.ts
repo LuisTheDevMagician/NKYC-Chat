@@ -3,9 +3,9 @@ import { db } from "../../db/client";
 import { createMessagesRepository } from "../../db/messages.repository";
 import { createConversationsRepository } from "../../db/conversations.repository";
 import { authGuard } from "../auth/guard";
-import { clientEvent } from "./model";
+import { clientEvent, type ServerEvent } from "./model";
 import { createConnectionRegistry } from "./connection-registry";
-import { broadcastPresence, broadcastTyping } from "./presence-broadcaster";
+import { broadcastPresence, broadcastTyping, broadcastGroupEnded } from "./presence-broadcaster";
 import { routeMessage } from "./message-router";
 
 const messagesRepository = createMessagesRepository(db);
@@ -36,11 +36,50 @@ export const chatModule = new Elysia()
         return;
       }
 
-      broadcastTyping(registry, user.id, event.to);
+      if (event.type === "typing") {
+        broadcastTyping(registry, conversationsRepository, user.id, {
+          to: event.to,
+          conversationId: event.conversationId,
+        });
+        return;
+      }
+
+      if (event.type === "create-group") {
+        const conversation = conversationsRepository.createGroup(user.id, event.participantIds, event.name ?? null);
+        const participants = conversationsRepository.findParticipants(conversation.id);
+        const name = conversation.name ?? participants.map((p) => p.username).join(", ");
+        const invite: ServerEvent = {
+          type: "group-invite",
+          conversationId: conversation.id,
+          name,
+          createdBy: { id: user.id, username: user.username, publicKey: "" },
+          participantUsernames: participants.map((p) => p.username),
+        };
+        for (const participant of participants) {
+          if (participant.userId === user.id) continue;
+          registry.get(participant.userId)?.send(invite);
+        }
+        return;
+      }
+
+      // respond-group-invite
+      conversationsRepository.respondToInvite(event.conversationId, user.id, event.response);
     },
     close(ws) {
-      registry.remove(ws.data.user.id);
-      conversationsRepository.endAllActiveForUser(ws.data.user.id);
+      const { user } = ws.data;
+      const activeGroups = conversationsRepository.findActiveGroupsForUser(user.id);
+      const groupParticipantIds = activeGroups.map((group) => ({
+        id: group.id,
+        participantIds: conversationsRepository.findAcceptedParticipantIds(group.id),
+      }));
+
+      registry.remove(user.id);
+      conversationsRepository.endAllActiveForUser(user.id);
+      conversationsRepository.declineAllPendingForUser(user.id);
+
+      for (const group of groupParticipantIds) {
+        broadcastGroupEnded(registry, group.participantIds, group.id);
+      }
       broadcastPresence(registry);
     },
   });
