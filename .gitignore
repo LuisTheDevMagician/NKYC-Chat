@@ -15,6 +15,7 @@ next-env.d.ts
 # Env & local data
 .env
 .env.*
+!.env.example
 *.db
 *.db-shm
 *.db-wal
