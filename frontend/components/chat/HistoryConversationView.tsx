@@ -25,9 +25,7 @@ export function HistoryConversationView({ conversationId, onBack }: HistoryConve
       const keyPair = await sessionStore.getKeyPair();
       const rows = await fetchHistoryMessages(conversationId);
       if (cancelled || !keyPair) return;
-      const decrypted = await Promise.all(
-        rows.map((row) => decryptStoredMessage(row, currentUserId, keyPair.privateKey))
-      );
+      const decrypted = await Promise.all(rows.map((row) => decryptStoredMessage(row, keyPair.privateKey)));
       if (!cancelled) setMessages(decrypted);
     }
 

@@ -32,9 +32,7 @@ export function ChatWindow({ peer, liveMessages, typingFrom, onSend, onTyping }:
       const keyPair = await sessionStore.getKeyPair();
       const rows = await fetchActiveConversation(peer!.id);
       if (cancelled || !keyPair) return;
-      const decrypted = await Promise.all(
-        rows.map((row) => decryptStoredMessage(row, currentUserId, keyPair.privateKey))
-      );
+      const decrypted = await Promise.all(rows.map((row) => decryptStoredMessage(row, keyPair.privateKey)));
       if (!cancelled) setHistory(decrypted);
     }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Users } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { fetchHistoryList, type ConversationHistoryEntryDto } from "@/lib/api/messages.api";
@@ -38,11 +39,11 @@ export function HistoryPanel({ onSelect }: HistoryPanelProps) {
             >
               <Avatar className="size-9">
                 <AvatarFallback className="bg-primary text-primary-foreground">
-                  {entry.peerUsername.slice(0, 2).toUpperCase()}
+                  {entry.isGroup ? <Users className="size-4" /> : entry.title.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col items-start">
-                <span className="text-sm">{entry.peerUsername}</span>
+                <span className="text-sm">{entry.title}</span>
                 <span className="font-mono text-xs text-muted-foreground">
                   {new Date(entry.endedAt).toLocaleString("pt-BR")}
                 </span>
