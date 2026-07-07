@@ -10,31 +10,51 @@ export function routeMessage(
   fromUserId: number,
   event: Extract<ClientEvent, { type: "message" }>
 ): { delivered: boolean } {
-  if (event.to === fromUserId) return { delivered: false };
+  let conversationId: number;
 
-  const conversation = conversationsRepository.getOrCreateActive(fromUserId, event.to);
+  if (event.conversationId !== undefined) {
+    if (!conversationsRepository.isAcceptedParticipant(event.conversationId, fromUserId)) {
+      return { delivered: false };
+    }
+    conversationId = event.conversationId;
+  } else if (event.to !== undefined) {
+    if (event.to === fromUserId) return { delivered: false };
+    conversationId = conversationsRepository.getOrCreateActive1to1(fromUserId, event.to).id;
+  } else {
+    return { delivered: false };
+  }
+
+  // Never trust the client's recipient list blindly — only forward keys meant for
+  // users who are actually accepted participants of this conversation.
+  const acceptedParticipantIds = new Set(conversationsRepository.findAcceptedParticipantIds(conversationId));
+  const recipientKeys = event.recipientKeys.filter((rk) => acceptedParticipantIds.has(rk.userId));
 
   const saved = messagesRepository.create({
-    conversationId: conversation.id,
+    conversationId,
     fromUserId,
-    toUserId: event.to,
     ciphertext: event.ciphertext,
-    encryptedAesKey: event.encryptedAesKey,
-    encryptedAesKeyForSender: event.encryptedAesKeyForSender,
     iv: event.iv,
+    recipientKeys,
   });
 
-  const recipient = registry.get(event.to);
-  if (!recipient) return { delivered: false };
+  let delivered = false;
+  for (const recipientKey of recipientKeys) {
+    if (recipientKey.userId === fromUserId) continue;
+    const recipient = registry.get(recipientKey.userId);
+    if (!recipient) continue;
 
-  const outgoing: ServerEvent = {
-    type: "message",
-    from: fromUserId,
-    ciphertext: event.ciphertext,
-    iv: event.iv,
-    encryptedAesKey: event.encryptedAesKey,
-    createdAt: saved.createdAt,
-  };
-  recipient.send(outgoing);
-  return { delivered: true };
+    const outgoing: ServerEvent = {
+      type: "message",
+      conversationId,
+      from: fromUserId,
+      ciphertext: event.ciphertext,
+      iv: event.iv,
+      encryptedAesKey: recipientKey.encryptedAesKey,
+      createdAt: saved.createdAt,
+    };
+    recipient.send(outgoing);
+    delivered = true;
+  }
+
+  return { delivered };
 }

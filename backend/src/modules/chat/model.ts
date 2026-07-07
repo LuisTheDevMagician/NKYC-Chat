@@ -5,21 +5,48 @@ export const clientHello = t.Object({
   publicKey: t.String(),
 });
 
+export const recipientKey = t.Object({
+  userId: t.Number(),
+  encryptedAesKey: t.String(),
+});
+
 export const clientMessage = t.Object({
   type: t.Literal("message"),
-  to: t.Number(),
+  // 1:1: recipient's user id, server resolves/creates the conversation.
+  to: t.Optional(t.Number()),
+  // Group (or an already-known conversation): explicit conversation id.
+  conversationId: t.Optional(t.Number()),
   ciphertext: t.String(),
   iv: t.String(),
-  encryptedAesKey: t.String(),
-  encryptedAesKeyForSender: t.String(),
+  // AES key for this message, encrypted once per accepted participant (including the sender).
+  recipientKeys: t.Array(recipientKey),
 });
 
 export const clientTyping = t.Object({
   type: t.Literal("typing"),
-  to: t.Number(),
+  to: t.Optional(t.Number()),
+  conversationId: t.Optional(t.Number()),
 });
 
-export const clientEvent = t.Union([clientHello, clientMessage, clientTyping]);
+export const clientCreateGroup = t.Object({
+  type: t.Literal("create-group"),
+  participantIds: t.Array(t.Number()),
+  name: t.Optional(t.String()),
+});
+
+export const clientRespondGroupInvite = t.Object({
+  type: t.Literal("respond-group-invite"),
+  conversationId: t.Number(),
+  response: t.Union([t.Literal("accepted"), t.Literal("declined")]),
+});
+
+export const clientEvent = t.Union([
+  clientHello,
+  clientMessage,
+  clientTyping,
+  clientCreateGroup,
+  clientRespondGroupInvite,
+]);
 export type ClientEvent = typeof clientEvent.static;
 
 export interface PresenceUser {
@@ -32,11 +59,20 @@ export type ServerEvent =
   | { type: "presence"; users: PresenceUser[] }
   | {
       type: "message";
+      conversationId: number;
       from: number;
       ciphertext: string;
       iv: string;
       encryptedAesKey: string;
       createdAt: number;
     }
-  | { type: "typing"; from: number }
+  | { type: "typing"; from: number; conversationId?: number }
+  | {
+      type: "group-invite";
+      conversationId: number;
+      name: string;
+      createdBy: PresenceUser;
+      participantUsernames: string[];
+    }
+  | { type: "group-ended"; conversationId: number }
   | { type: "error"; reason: string };
