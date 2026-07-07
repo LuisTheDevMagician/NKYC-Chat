@@ -10,9 +10,10 @@ interface MessageBubbleProps {
   isOwn: boolean;
   publicKeyBase64?: string;
   isLive: boolean;
+  senderName?: string;
 }
 
-export function MessageBubble({ message, isOwn, publicKeyBase64, isLive }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwn, publicKeyBase64, isLive, senderName }: MessageBubbleProps) {
   const [revealed, setRevealed] = useState(!isLive);
 
   useEffect(() => {
@@ -23,7 +24,8 @@ export function MessageBubble({ message, isOwn, publicKeyBase64, isLive }: Messa
 
   if (!message.decodable) {
     return (
-      <div className={cn("flex", isOwn ? "justify-end" : "justify-start")}>
+      <div className={cn("flex flex-col gap-1", isOwn ? "items-end" : "items-start")}>
+        {senderName && <span className="px-1 text-xs text-muted-foreground">{senderName}</span>}
         <div className="max-w-xs rounded-2xl border border-dashed border-border bg-transparent px-4 py-2 text-sm text-muted-foreground">
           🔒 mensagem de sessão anterior
         </div>
@@ -33,6 +35,7 @@ export function MessageBubble({ message, isOwn, publicKeyBase64, isLive }: Messa
 
   return (
     <div className={cn("flex flex-col gap-1", isOwn ? "items-end" : "items-start")}>
+      {senderName && <span className="px-1 text-xs text-muted-foreground">{senderName}</span>}
       <div
         className={cn(
           "max-w-xs rounded-2xl px-4 py-2 text-sm transition-[filter,opacity] duration-200",
