@@ -2,12 +2,30 @@ import type { PublicUser } from "../session/session-store";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
-export async function registerUser(username: string, password: string): Promise<PublicUser> {
+export interface RegisterKeyMaterial {
+  publicKey: string;
+  wrappedPrivateKey: string;
+  wrapIv: string;
+  keySalt: string;
+}
+
+export interface AuthenticatedUser extends PublicUser {
+  publicKey: string;
+  wrappedPrivateKey: string;
+  wrapIv: string;
+  keySalt: string;
+}
+
+export async function registerUser(
+  username: string,
+  password: string,
+  keyMaterial: RegisterKeyMaterial
+): Promise<PublicUser> {
   const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, ...keyMaterial }),
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({ error: "unknown_error" }));
@@ -16,7 +34,7 @@ export async function registerUser(username: string, password: string): Promise<
   return response.json();
 }
 
-export async function loginUser(username: string, password: string): Promise<PublicUser> {
+export async function loginUser(username: string, password: string): Promise<AuthenticatedUser> {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
