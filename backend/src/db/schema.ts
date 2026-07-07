@@ -25,14 +25,26 @@ export const sessions = sqliteTable("sessions", {
 
 export const conversations = sqliteTable("conversations", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userAId: integer("user_a_id")
-    .notNull()
-    .references(() => users.id),
-  userBId: integer("user_b_id")
-    .notNull()
-    .references(() => users.id),
+  // Null for 1:1 conversations; set for groups (falls back to a name generated from
+  // member usernames on the client when not provided at creation).
+  name: text("name"),
+  isGroup: integer("is_group", { mode: "boolean" }).notNull().default(false),
   startedAt: integer("started_at").notNull(),
   endedAt: integer("ended_at"),
+});
+
+export const conversationParticipants = sqliteTable("conversation_participants", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  conversationId: integer("conversation_id")
+    .notNull()
+    .references(() => conversations.id),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  // 'invited' | 'accepted' | 'declined' — 1:1 participants start (and stay) 'accepted'.
+  status: text("status").notNull(),
+  invitedAt: integer("invited_at").notNull(),
+  respondedAt: integer("responded_at"),
 });
 
 export const messages = sqliteTable("messages", {
@@ -43,12 +55,22 @@ export const messages = sqliteTable("messages", {
   fromUserId: integer("from_user_id")
     .notNull()
     .references(() => users.id),
-  toUserId: integer("to_user_id")
-    .notNull()
-    .references(() => users.id),
   ciphertext: text("ciphertext").notNull(),
-  encryptedAesKey: text("encrypted_aes_key").notNull(),
-  encryptedAesKeyForSender: text("encrypted_aes_key_for_sender").notNull(),
   iv: text("iv").notNull(),
   createdAt: integer("created_at").notNull(),
+});
+
+// One row per recipient (including the sender's own copy), each holding the AES key
+// for this message encrypted specifically with that user's RSA public key. Replaces
+// fixed encryptedAesKey/encryptedAesKeyForSender columns so 1:1 and group messages
+// (any number of recipients) share the same shape.
+export const messageRecipientKeys = sqliteTable("message_recipient_keys", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  messageId: integer("message_id")
+    .notNull()
+    .references(() => messages.id),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  encryptedAesKey: text("encrypted_aes_key").notNull(),
 });
