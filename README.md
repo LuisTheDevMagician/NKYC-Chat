@@ -31,6 +31,7 @@
 - [Modelo de dados](#modelo-de-dados)
 - [Aviso acadêmico](#aviso-acadêmico)
 - [Licença](#licença)
+- [Telas](#telas)
 
 ---
 
@@ -298,3 +299,31 @@ qualquer uso em produção:
 ## Licença
 
 Distribuído sob a licença **MIT** — veja [`LICENSE`](./LICENSE) para o texto completo.
+
+## Telas
+
+> **Nota:** a versão para mobile foi retirada do escopo do projeto. A interface é **responsiva** (adapta-se
+> a diferentes tamanhos de tela), mas o desenvolvimento e os testes focaram na experiência **desktop**.
+
+<div align="center">
+
+**Página inicial · Login · Criar conta**
+
+<img src="images/pagina_incial.png" alt="Página inicial" width="230" />
+<img src="images/pagina_login.png" alt="Página de login" width="230" />
+<img src="images/pagina_criar_conta.png" alt="Página de criar conta" width="230" />
+
+**Sidebar aberto · Criando um grupo · Histórico de conversas**
+
+<img src="images/sidebar_aberto.png" alt="Sidebar aberto" width="230" />
+<img src="images/criando_grupo.png" alt="Criando grupo" width="230" />
+<img src="images/historico.png" alt="Histórico" width="230" />
+
+**Usuários online e grupos ativos · Chat 1:1 · Chat 1:1 (digitando) · Chat em grupo**
+
+<img src="images/usuarios_online_e_grupos_ativos.png" alt="Usuários online e grupos ativos" width="170" />
+<img src="images/cha_1:1t.png" alt="Chat 1:1" width="170" />
+<img src="images/chat_1:1_mostrando_alguem_esta_digitando.png" alt="Chat 1:1 mostrando alguém está digitando" width="170" />
+<img src="images/chat_em_grupo.png" alt="Chat em grupo" width="170" />
+
+</div>
