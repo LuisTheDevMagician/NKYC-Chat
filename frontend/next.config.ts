@@ -35,6 +35,8 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_WS_URL: rootEnv.NEXT_PUBLIC_WS_URL,
   },
   allowedDevOrigins: getLocalNetworkOrigins(),
+  // Hide the Next.js on-screen dev indicator (the "N" devtools button).
+  devIndicators: false,
 };
 
 export default nextConfig;
