@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import logo from "@/public/logot.png";
 
 export function LoginForm() {
   const { login, loading, error } = useAuth();
@@ -20,7 +22,8 @@ export function LoginForm() {
 
   return (
     <Card className="w-full max-w-sm border-border bg-card">
-      <CardHeader>
+      <CardHeader className="items-center gap-2 text-center">
+        <Image src={logo} alt="NKYC Chat" width={56} height={56} className="mx-auto rounded-lg" />
         <CardTitle className="font-heading text-2xl text-foreground">NKYC Chat</CardTitle>
       </CardHeader>
       <CardContent>
