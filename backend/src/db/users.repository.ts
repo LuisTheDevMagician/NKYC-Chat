@@ -4,6 +4,16 @@ import { users } from "./schema";
 
 export type UserRow = typeof users.$inferSelect;
 
+export interface CreateUserInput {
+  username: string;
+  salt: string;
+  passwordHash: string;
+  publicKey: string;
+  wrappedPrivateKey: string;
+  wrapIv: string;
+  keySalt: string;
+}
+
 export function createUsersRepository(database: Db) {
   return {
     findByUsername(username: string): UserRow | null {
@@ -12,12 +22,12 @@ export function createUsersRepository(database: Db) {
     findById(id: number): UserRow | null {
       return database.select().from(users).where(eq(users.id, id)).get() ?? null;
     },
-    create(username: string, salt: string, passwordHash: string): UserRow {
+    create(input: CreateUserInput): UserRow {
       database
         .insert(users)
-        .values({ username, salt, passwordHash, createdAt: Date.now() })
+        .values({ ...input, createdAt: Date.now() })
         .run();
-      return database.select().from(users).where(eq(users.username, username)).get()!;
+      return database.select().from(users).where(eq(users.username, input.username)).get()!;
     },
   };
 }

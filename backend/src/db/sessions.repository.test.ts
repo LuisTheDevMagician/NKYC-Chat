@@ -2,12 +2,13 @@ import { describe, expect, it } from "bun:test";
 import { createDb } from "./client";
 import { createUsersRepository } from "./users.repository";
 import { createSessionsRepository } from "./sessions.repository";
+import { testUserInput } from "./test-helpers";
 
 function setup() {
   const database = createDb(":memory:");
   const users = createUsersRepository(database);
   const sessions = createSessionsRepository(database);
-  const user = users.create("alice", "salt", "hash");
+  const user = users.create(testUserInput("alice", "salt", "hash"));
   return { sessions, user };
 }
 
