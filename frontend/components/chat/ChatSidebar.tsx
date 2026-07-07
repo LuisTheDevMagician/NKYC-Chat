@@ -1,6 +1,6 @@
 "use client";
 
-import { History, LogOut, Users } from "lucide-react";
+import { History, LogOut, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -18,9 +18,10 @@ import { useAuth } from "@/hooks/useAuth";
 interface ChatSidebarProps {
   onShowOnlineUsers(): void;
   onShowHistory(): void;
+  onCreateGroup(): void;
 }
 
-export function ChatSidebar({ onShowOnlineUsers, onShowHistory }: ChatSidebarProps) {
+export function ChatSidebar({ onShowOnlineUsers, onShowHistory, onCreateGroup }: ChatSidebarProps) {
   const { logout } = useAuth();
   const { setOpen, setOpenMobile } = useSidebar();
 
@@ -44,6 +45,17 @@ export function ChatSidebar({ onShowOnlineUsers, onShowHistory }: ChatSidebarPro
                 >
                   <Users />
                   <span>Usuários online</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => {
+                    onCreateGroup();
+                    closePanel();
+                  }}
+                >
+                  <UserPlus />
+                  <span>Criar grupo</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
