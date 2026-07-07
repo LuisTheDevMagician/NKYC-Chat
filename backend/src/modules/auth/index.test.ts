@@ -7,13 +7,24 @@ function extractCookie(response: Response): string {
   return match ? `session=${match[1]}` : "";
 }
 
+function registerBody(username: string) {
+  return JSON.stringify({
+    username,
+    password: "password123",
+    publicKey: "pub-key",
+    wrappedPrivateKey: "wrapped-key",
+    wrapIv: "wrap-iv",
+    keySalt: "key-salt",
+  });
+}
+
 describe("auth module", () => {
   it("registers, logs in, reads /me, and logs out", async () => {
     const registerRes = await authModule.handle(
       new Request("http://localhost/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: "alice", password: "password123" }),
+        body: registerBody("alice"),
       })
     );
     expect(registerRes.status).toBe(200);
@@ -28,6 +39,11 @@ describe("auth module", () => {
     expect(loginRes.status).toBe(200);
     const cookie = extractCookie(loginRes);
     expect(cookie).toContain("session=");
+    const loginBody = await loginRes.json();
+    expect(loginBody.publicKey).toBe("pub-key");
+    expect(loginBody.wrappedPrivateKey).toBe("wrapped-key");
+    expect(loginBody.wrapIv).toBe("wrap-iv");
+    expect(loginBody.keySalt).toBe("key-salt");
 
     const meRes = await authModule.handle(
       new Request("http://localhost/auth/me", {
@@ -57,14 +73,14 @@ describe("auth module", () => {
       new Request("http://localhost/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: "bob", password: "password123" }),
+        body: registerBody("bob"),
       })
     );
     const res = await authModule.handle(
       new Request("http://localhost/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: "bob", password: "password123" }),
+        body: registerBody("bob"),
       })
     );
     expect(res.status).toBe(409);
