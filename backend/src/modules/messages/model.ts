@@ -14,20 +14,30 @@ export const messageDto = t.Object({
   id: t.Number(),
   conversationId: t.Number(),
   fromUserId: t.Number(),
-  toUserId: t.Number(),
   ciphertext: t.String(),
-  encryptedAesKey: t.String(),
-  encryptedAesKeyForSender: t.String(),
   iv: t.String(),
   createdAt: t.Number(),
+  encryptedAesKey: t.Union([t.String(), t.Null()]),
 });
 export type MessageDto = typeof messageDto.static;
 
 export const conversationHistoryEntryDto = t.Object({
   id: t.Number(),
-  peerId: t.Number(),
-  peerUsername: t.String(),
+  title: t.String(),
+  isGroup: t.Boolean(),
   startedAt: t.Number(),
   endedAt: t.Number(),
 });
 export type ConversationHistoryEntryDto = typeof conversationHistoryEntryDto.static;
+
+export const activeGroupMemberDto = t.Object({
+  id: t.Number(),
+  username: t.String(),
+});
+
+export const activeGroupDto = t.Object({
+  id: t.Number(),
+  name: t.String(),
+  members: t.Array(activeGroupMemberDto),
+});
+export type ActiveGroupDto = typeof activeGroupDto.static;

@@ -18,6 +18,25 @@ export const messagesModule = new Elysia({ prefix: "/messages" })
     { params: activeConversationParams, isAuthenticated: true }
   )
   .get(
+    "/groups",
+    ({ user }) => MessagesService.getActiveGroups(conversationsRepository, user.id),
+    { isAuthenticated: true }
+  )
+  .get(
+    "/group/:conversationId",
+    ({ params, user, status }) => {
+      const result = MessagesService.getGroupMessages(
+        messagesRepository,
+        conversationsRepository,
+        user.id,
+        params.conversationId
+      );
+      if (result === null) return status(404, { error: "conversation_not_found" });
+      return result;
+    },
+    { params: historyDetailParams, isAuthenticated: true }
+  )
+  .get(
     "/history",
     ({ user }) => MessagesService.getHistory(conversationsRepository, user.id),
     { isAuthenticated: true }

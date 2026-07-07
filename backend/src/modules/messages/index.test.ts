@@ -37,22 +37,23 @@ async function registerAndLogin(username: string) {
   return { cookie: extractCookie(loginRes), user };
 }
 
-describe("messages module", () => {
+describe("messages module — 1:1", () => {
   it("returns the messages for the active conversation between two users", async () => {
     const alice = await registerAndLogin("alice-msg");
     const bob = await registerAndLogin("bob-msg");
 
     const messagesRepository = createMessagesRepository(db);
     const conversationsRepository = createConversationsRepository(db);
-    const conversation = conversationsRepository.getOrCreateActive(alice.user.id, bob.user.id);
+    const conversation = conversationsRepository.getOrCreateActive1to1(alice.user.id, bob.user.id);
     messagesRepository.create({
       conversationId: conversation.id,
       fromUserId: alice.user.id,
-      toUserId: bob.user.id,
       ciphertext: "c1",
-      encryptedAesKey: "k1",
-      encryptedAesKeyForSender: "sk1",
       iv: "iv1",
+      recipientKeys: [
+        { userId: bob.user.id, encryptedAesKey: "k1" },
+        { userId: alice.user.id, encryptedAesKey: "sk1" },
+      ],
     });
 
     const res = await messagesModule.handle(
@@ -64,6 +65,7 @@ describe("messages module", () => {
     const active = await res.json();
     expect(active).toHaveLength(1);
     expect(active[0].ciphertext).toBe("c1");
+    expect(active[0].encryptedAesKey).toBe("sk1");
   });
 
   it("returns an empty array when there is no active conversation", async () => {
@@ -84,7 +86,7 @@ describe("messages module", () => {
     const bob = await registerAndLogin("bob-msg-3");
 
     const conversationsRepository = createConversationsRepository(db);
-    conversationsRepository.getOrCreateActive(alice.user.id, bob.user.id);
+    conversationsRepository.getOrCreateActive1to1(alice.user.id, bob.user.id);
     conversationsRepository.endAllActiveForUser(alice.user.id);
 
     const res = await messagesModule.handle(
@@ -95,7 +97,8 @@ describe("messages module", () => {
     expect(res.status).toBe(200);
     const history = await res.json();
     expect(history).toHaveLength(1);
-    expect(history[0].peerUsername).toBe("bob-msg-3");
+    expect(history[0].title).toBe("bob-msg-3");
+    expect(history[0].isGroup).toBe(false);
   });
 
   it("returns the full message thread for a specific ended conversation", async () => {
@@ -104,15 +107,16 @@ describe("messages module", () => {
 
     const messagesRepository = createMessagesRepository(db);
     const conversationsRepository = createConversationsRepository(db);
-    const conversation = conversationsRepository.getOrCreateActive(alice.user.id, bob.user.id);
+    const conversation = conversationsRepository.getOrCreateActive1to1(alice.user.id, bob.user.id);
     messagesRepository.create({
       conversationId: conversation.id,
       fromUserId: alice.user.id,
-      toUserId: bob.user.id,
       ciphertext: "c1",
-      encryptedAesKey: "k1",
-      encryptedAesKeyForSender: "sk1",
       iv: "iv1",
+      recipientKeys: [
+        { userId: bob.user.id, encryptedAesKey: "k1" },
+        { userId: alice.user.id, encryptedAesKey: "sk1" },
+      ],
     });
     conversationsRepository.endAllActiveForUser(alice.user.id);
 
@@ -133,7 +137,7 @@ describe("messages module", () => {
     const mallory = await registerAndLogin("mallory-msg-5");
 
     const conversationsRepository = createConversationsRepository(db);
-    const conversation = conversationsRepository.getOrCreateActive(alice.user.id, bob.user.id);
+    const conversation = conversationsRepository.getOrCreateActive1to1(alice.user.id, bob.user.id);
     conversationsRepository.endAllActiveForUser(alice.user.id);
 
     const res = await messagesModule.handle(
@@ -147,5 +151,48 @@ describe("messages module", () => {
   it("rejects unauthenticated requests", async () => {
     const res = await messagesModule.handle(new Request("http://localhost/messages/history"));
     expect(res.status).toBe(401);
+  });
+});
+
+describe("messages module — groups", () => {
+  it("lists active groups and returns their messages to accepted participants", async () => {
+    const alice = await registerAndLogin("alice-grp");
+    const bob = await registerAndLogin("bob-grp");
+    const mallory = await registerAndLogin("mallory-grp");
+
+    const messagesRepository = createMessagesRepository(db);
+    const conversationsRepository = createConversationsRepository(db);
+    const group = conversationsRepository.createGroup(alice.user.id, [bob.user.id], "Amigos");
+    conversationsRepository.respondToInvite(group.id, bob.user.id, "accepted");
+    messagesRepository.create({
+      conversationId: group.id,
+      fromUserId: alice.user.id,
+      ciphertext: "c1",
+      iv: "iv1",
+      recipientKeys: [
+        { userId: alice.user.id, encryptedAesKey: "k-alice" },
+        { userId: bob.user.id, encryptedAesKey: "k-bob" },
+      ],
+    });
+
+    const groupsRes = await messagesModule.handle(
+      new Request("http://localhost/messages/groups", { headers: { cookie: bob.cookie } })
+    );
+    expect(groupsRes.status).toBe(200);
+    const groups = await groupsRes.json();
+    expect(groups).toHaveLength(1);
+    expect(groups[0].name).toBe("Amigos");
+
+    const messagesRes = await messagesModule.handle(
+      new Request(`http://localhost/messages/group/${group.id}`, { headers: { cookie: bob.cookie } })
+    );
+    expect(messagesRes.status).toBe(200);
+    const messages = await messagesRes.json();
+    expect(messages[0].encryptedAesKey).toBe("k-bob");
+
+    const malloryRes = await messagesModule.handle(
+      new Request(`http://localhost/messages/group/${group.id}`, { headers: { cookie: mallory.cookie } })
+    );
+    expect(malloryRes.status).toBe(404);
   });
 });

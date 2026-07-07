@@ -1,6 +1,6 @@
 import type { MessagesRepository } from "../../db/messages.repository";
 import type { ConversationsRepository } from "../../db/conversations.repository";
-import type { ConversationHistoryEntryDto, MessageDto } from "./model";
+import type { ActiveGroupDto, ConversationHistoryEntryDto, MessageDto } from "./model";
 
 export abstract class MessagesService {
   // MessageRow (Drizzle's inferred select type) already matches MessageDto's shape
@@ -12,9 +12,23 @@ export abstract class MessagesService {
     userId: number,
     withUserId: number
   ): MessageDto[] {
-    const conversation = conversationsRepository.findActive(userId, withUserId);
+    const conversation = conversationsRepository.findActive1to1(userId, withUserId);
     if (!conversation) return [];
-    return messagesRepository.findByConversationId(conversation.id);
+    return messagesRepository.findByConversationIdForUser(conversation.id, userId);
+  }
+
+  static getActiveGroups(conversationsRepository: ConversationsRepository, userId: number): ActiveGroupDto[] {
+    return conversationsRepository.findActiveGroupsForUser(userId);
+  }
+
+  static getGroupMessages(
+    messagesRepository: MessagesRepository,
+    conversationsRepository: ConversationsRepository,
+    userId: number,
+    conversationId: number
+  ): MessageDto[] | null {
+    if (!conversationsRepository.isAcceptedParticipant(conversationId, userId)) return null;
+    return messagesRepository.findByConversationIdForUser(conversationId, userId);
   }
 
   static getHistory(
@@ -32,7 +46,8 @@ export abstract class MessagesService {
   ): MessageDto[] | null {
     const conversation = conversationsRepository.findById(conversationId);
     if (!conversation) return null;
-    if (conversation.userAId !== userId && conversation.userBId !== userId) return null;
-    return messagesRepository.findByConversationId(conversationId);
+    const participants = conversationsRepository.findParticipants(conversationId);
+    if (!participants.some((p) => p.userId === userId)) return null;
+    return messagesRepository.findByConversationIdForUser(conversationId, userId);
   }
 }
