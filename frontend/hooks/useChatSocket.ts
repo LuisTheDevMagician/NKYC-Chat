@@ -26,7 +26,7 @@ export function useChatSocket() {
     let cancelled = false;
 
     async function connect() {
-      const keyPair = sessionStore.getKeyPair();
+      const keyPair = await sessionStore.getKeyPair();
       if (!keyPair) return;
 
       const socket = createChatSocket(WS_URL);
@@ -54,7 +54,11 @@ export function useChatSocket() {
         }
         if (event.type === "message") {
           try {
-            const aesKeyRaw = await decryptWithRsaPrivateKey(keyPair.privateKey, event.encryptedAesKey);
+            // Re-read the private key from storage (rather than reusing the one captured at
+            // connect time) so a tampered/edited key makes new messages fail to decrypt right away.
+            const currentKeyPair = await sessionStore.getKeyPair();
+            if (!currentKeyPair) throw new Error("no key pair");
+            const aesKeyRaw = await decryptWithRsaPrivateKey(currentKeyPair.privateKey, event.encryptedAesKey);
             const aesKey = await importAesKey(aesKeyRaw);
             const text = await decryptMessage(aesKey, { ciphertext: event.ciphertext, iv: event.iv });
             appendMessage(event.from, { fromUserId: event.from, text, decodable: true, createdAt: event.createdAt });

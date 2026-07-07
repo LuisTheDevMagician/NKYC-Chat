@@ -14,7 +14,7 @@ export function useAuth() {
   const establishSession = useCallback(async (user: { id: number; username: string }) => {
     sessionStore.setUser(user);
     const keyPair = await generateRsaKeyPair();
-    sessionStore.setKeyPair(keyPair);
+    await sessionStore.setKeyPair(keyPair);
   }, []);
 
   const register = useCallback(
@@ -55,7 +55,7 @@ export function useAuth() {
   const logout = useCallback(async () => {
     await logoutUser();
     sessionStore.clear();
-    router.push("/login");
+    router.push("/auth/login");
   }, [router]);
 
   return { register, login, logout, loading, error };

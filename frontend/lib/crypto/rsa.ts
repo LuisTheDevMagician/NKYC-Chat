@@ -32,6 +32,21 @@ export async function importPublicKey(base64: string): Promise<CryptoKey> {
   );
 }
 
+export async function exportPrivateKey(privateKey: CryptoKey): Promise<string> {
+  const raw = await crypto.subtle.exportKey("pkcs8", privateKey);
+  return bufferToBase64(raw);
+}
+
+export async function importPrivateKey(base64: string): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    "pkcs8",
+    base64ToBuffer(base64),
+    { name: "RSA-OAEP", hash: "SHA-256" },
+    true,
+    ["decrypt"]
+  );
+}
+
 export async function encryptWithRsaPublicKey(
   publicKey: CryptoKey,
   data: ArrayBuffer
