@@ -8,7 +8,7 @@ import type { ChatMessage } from "@/hooks/useChatSocket";
 interface MessageBubbleProps {
   message: ChatMessage;
   isOwn: boolean;
-  publicKeyBase64: string;
+  publicKeyBase64?: string;
   isLive: boolean;
 }
 
@@ -42,7 +42,7 @@ export function MessageBubble({ message, isOwn, publicKeyBase64, isLive }: Messa
       >
         {message.text}
       </div>
-      <CryptoBadge publicKeyBase64={publicKeyBase64} />
+      {publicKeyBase64 && <CryptoBadge publicKeyBase64={publicKeyBase64} />}
     </div>
   );
 }

@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
-import { fetchHistory, type MessageDto } from "@/lib/api/messages.api";
+import { fetchActiveConversation } from "@/lib/api/messages.api";
+import { decryptStoredMessage } from "@/lib/crypto/messageDecryption";
 import { sessionStore } from "@/lib/session/session-store";
 import type { PresenceUser } from "@/lib/ws/protocol";
 import type { ChatMessage } from "@/hooks/useChatSocket";
@@ -19,14 +20,29 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ peer, liveMessages, typingFrom, onSend, onTyping }: ChatWindowProps) {
-  const [history, setHistory] = useState<MessageDto[]>([]);
+  const [history, setHistory] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const currentUserId = sessionStore.getUser()?.id ?? -1;
 
   useEffect(() => {
     if (!peer) return;
-    void fetchHistory(peer.id).then(setHistory);
-  }, [peer]);
+    let cancelled = false;
+
+    async function loadHistory() {
+      const keyPair = await sessionStore.getKeyPair();
+      const rows = await fetchActiveConversation(peer!.id);
+      if (cancelled || !keyPair) return;
+      const decrypted = await Promise.all(
+        rows.map((row) => decryptStoredMessage(row, currentUserId, keyPair.privateKey))
+      );
+      if (!cancelled) setHistory(decrypted);
+    }
+
+    void loadHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, [peer, currentUserId]);
 
   if (!peer) {
     return (
@@ -46,11 +62,11 @@ export function ChatWindow({ peer, liveMessages, typingFrom, onSend, onTyping }:
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
-        {history.map((row) => (
+        {history.map((message, index) => (
           <MessageBubble
-            key={`history-${row.id}`}
-            message={{ fromUserId: row.fromUserId, text: null, decodable: false, createdAt: row.createdAt }}
-            isOwn={row.fromUserId === currentUserId}
+            key={`history-${index}`}
+            message={message}
+            isOwn={message.fromUserId === currentUserId}
             publicKeyBase64={peer.publicKey}
             isLive={false}
           />

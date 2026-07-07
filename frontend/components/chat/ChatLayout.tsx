@@ -5,30 +5,43 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { ChatSidebar } from "./ChatSidebar";
 import { MobileSidebarTrigger } from "./MobileSidebarTrigger";
 import { OnlineUsersPanel } from "./OnlineUsersPanel";
+import { HistoryPanel } from "./HistoryPanel";
+import { HistoryConversationView } from "./HistoryConversationView";
 import { ChatWindow } from "./ChatWindow";
 import { useChatSocket } from "@/hooks/useChatSocket";
+
+type MainView = "chat" | "online-users" | "history" | "history-detail";
 
 export function ChatLayout() {
   const { onlineUsers, messagesByUser, typingFrom, sendMessage, sendTyping } = useChatSocket();
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [showOnlineUsers, setShowOnlineUsers] = useState(false);
+  const [view, setView] = useState<MainView>("chat");
+  const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null);
   const peer = onlineUsers.find((u) => u.id === selectedUserId) ?? null;
 
-  function handleSelect(userId: number) {
+  function handleSelectUser(userId: number) {
     setSelectedUserId(userId);
-    setShowOnlineUsers(false);
+    setView("chat");
+  }
+
+  function handleSelectHistoryConversation(conversationId: number) {
+    setSelectedConversationId(conversationId);
+    setView("history-detail");
   }
 
   return (
     <SidebarProvider className="flex-1" defaultOpen={false}>
-      <ChatSidebar onShowOnlineUsers={() => setShowOnlineUsers(true)} />
+      <ChatSidebar onShowOnlineUsers={() => setView("online-users")} onShowHistory={() => setView("history")} />
       <SidebarInset className="bg-transparent">
         <div className="hidden items-center gap-2 p-2 md:flex">
           <SidebarTrigger />
         </div>
-        {showOnlineUsers ? (
-          <OnlineUsersPanel users={onlineUsers} onSelect={handleSelect} />
-        ) : (
+        {view === "online-users" && <OnlineUsersPanel users={onlineUsers} onSelect={handleSelectUser} />}
+        {view === "history" && <HistoryPanel onSelect={handleSelectHistoryConversation} />}
+        {view === "history-detail" && selectedConversationId !== null && (
+          <HistoryConversationView conversationId={selectedConversationId} onBack={() => setView("history")} />
+        )}
+        {view === "chat" && (
           <ChatWindow
             key={peer?.id ?? "none"}
             peer={peer}
