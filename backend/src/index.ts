@@ -8,7 +8,7 @@ import { chatModule } from "./modules/chat";
 const app = new Elysia()
   .use(
     cors({
-      origin: "http://localhost:3001",
+      origin: "http://localhost:3000",
       credentials: true,
     })
   )

@@ -1,5 +1,5 @@
 export const config = {
-  port: Number(process.env.PORT ?? 3000),
+  port: Number(process.env.PORT ?? 3001),
   dbPath: process.env.DB_PATH ?? "nkyc.db",
   pbkdf2Iterations: 100_000,
   saltBytes: 16,
