@@ -16,7 +16,12 @@ export const authModule = new Elysia({ prefix: "/auth" })
     "/register",
     async ({ body, status }) => {
       try {
-        return await AuthService.register(usersRepository, body.username, body.password);
+        return await AuthService.register(usersRepository, body.username, body.password, {
+          publicKey: body.publicKey,
+          wrappedPrivateKey: body.wrappedPrivateKey,
+          wrapIv: body.wrapIv,
+          keySalt: body.keySalt,
+        });
       } catch (error) {
         if (error instanceof AuthError) {
           return status(409, { error: "username_taken" });
