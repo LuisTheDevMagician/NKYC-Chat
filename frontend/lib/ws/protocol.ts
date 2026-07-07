@@ -1,6 +1,13 @@
 export type ClientEvent =
   | { type: "hello"; publicKey: string }
-  | { type: "message"; to: number; ciphertext: string; iv: string; encryptedAesKey: string }
+  | {
+      type: "message";
+      to: number;
+      ciphertext: string;
+      iv: string;
+      encryptedAesKey: string;
+      encryptedAesKeyForSender: string;
+    }
   | { type: "typing"; to: number };
 
 export interface PresenceUser {

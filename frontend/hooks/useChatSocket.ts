@@ -88,11 +88,17 @@ export function useChatSocket() {
     const recipient = onlineUsers.find((u) => u.id === toUserId);
     if (!socket || !recipient) return;
 
+    const keyPair = await sessionStore.getKeyPair();
+    if (!keyPair) return;
+
     const aesKey = await generateAesKey();
     const encryptedText = await encryptMessage(aesKey, plaintext);
     const rawAesKey = await exportAesKey(aesKey);
     const recipientPublicKey = await importPublicKey(recipient.publicKey);
-    const encryptedAesKey = await encryptWithRsaPublicKey(recipientPublicKey, rawAesKey);
+    const [encryptedAesKey, encryptedAesKeyForSender] = await Promise.all([
+      encryptWithRsaPublicKey(recipientPublicKey, rawAesKey),
+      encryptWithRsaPublicKey(keyPair.publicKey, rawAesKey),
+    ]);
 
     socket.send({
       type: "message",
@@ -100,6 +106,7 @@ export function useChatSocket() {
       ciphertext: encryptedText.ciphertext,
       iv: encryptedText.iv,
       encryptedAesKey,
+      encryptedAesKeyForSender,
     });
 
     setMessagesByUser((prev) => ({
