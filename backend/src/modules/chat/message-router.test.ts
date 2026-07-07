@@ -57,4 +57,27 @@ describe("routeMessage", () => {
     expect(result.delivered).toBe(false);
     expect(messagesRepository.findConversation(alice.id, bob.id)).toHaveLength(1);
   });
+
+  it("rejects and does not persist a message a user sends to themselves", () => {
+    const { messagesRepository, registry, alice } = setup();
+    const received: unknown[] = [];
+    registry.add({
+      userId: alice.id,
+      username: alice.username,
+      publicKey: "alice-pk",
+      send: (event) => received.push(event),
+    });
+
+    const result = routeMessage(registry, messagesRepository, alice.id, {
+      type: "message",
+      to: alice.id,
+      ciphertext: "cipher",
+      iv: "iv",
+      encryptedAesKey: "key",
+    });
+
+    expect(result.delivered).toBe(false);
+    expect(received).toHaveLength(0);
+    expect(messagesRepository.findConversation(alice.id, alice.id)).toHaveLength(0);
+  });
 });

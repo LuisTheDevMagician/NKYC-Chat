@@ -8,6 +8,8 @@ export function routeMessage(
   fromUserId: number,
   event: Extract<ClientEvent, { type: "message" }>
 ): { delivered: boolean } {
+  if (event.to === fromUserId) return { delivered: false };
+
   const saved = messagesRepository.create({
     fromUserId,
     toUserId: event.to,

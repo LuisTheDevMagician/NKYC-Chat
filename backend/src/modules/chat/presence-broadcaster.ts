@@ -2,11 +2,12 @@ import type { ConnectionRegistry } from "./connection-registry";
 import type { ServerEvent } from "./model";
 
 export function broadcastPresence(registry: ConnectionRegistry): void {
-  const users = registry
-    .list()
-    .map((c) => ({ id: c.userId, username: c.username, publicKey: c.publicKey }));
-  const event: ServerEvent = { type: "presence", users };
-  for (const connection of registry.list()) {
+  const connections = registry.list();
+  for (const connection of connections) {
+    const users = connections
+      .filter((c) => c.userId !== connection.userId)
+      .map((c) => ({ id: c.userId, username: c.username, publicKey: c.publicKey }));
+    const event: ServerEvent = { type: "presence", users };
     connection.send(event);
   }
 }

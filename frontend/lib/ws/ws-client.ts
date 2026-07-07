@@ -11,6 +11,12 @@ export interface ChatSocket {
 export function createChatSocket(url: string): ChatSocket {
   const socket = new WebSocket(url);
   const listeners = new Set<Listener>();
+  const pending: string[] = [];
+
+  socket.onopen = () => {
+    for (const data of pending) socket.send(data);
+    pending.length = 0;
+  };
 
   socket.onmessage = (event) => {
     const parsed = JSON.parse(event.data as string) as ServerEvent;
@@ -19,7 +25,12 @@ export function createChatSocket(url: string): ChatSocket {
 
   return {
     send(event: ClientEvent) {
-      socket.send(JSON.stringify(event));
+      const data = JSON.stringify(event);
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(data);
+      } else {
+        pending.push(data);
+      }
     },
     on(listener: Listener) {
       listeners.add(listener);
