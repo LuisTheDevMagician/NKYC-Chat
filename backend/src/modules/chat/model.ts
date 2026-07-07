@@ -11,6 +11,7 @@ export const clientMessage = t.Object({
   ciphertext: t.String(),
   iv: t.String(),
   encryptedAesKey: t.String(),
+  encryptedAesKeyForSender: t.String(),
 });
 
 export const clientTyping = t.Object({
