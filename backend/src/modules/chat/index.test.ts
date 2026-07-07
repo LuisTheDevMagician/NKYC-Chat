@@ -27,7 +27,14 @@ async function registerAndLogin(username: string) {
     new Request("http://localhost/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password: "password123" }),
+      body: JSON.stringify({
+        username,
+        password: "password123",
+        publicKey: "pub-key",
+        wrappedPrivateKey: "wrapped-key",
+        wrapIv: "wrap-iv",
+        keySalt: "key-salt",
+      }),
     })
   );
   const loginRes = await authModule.handle(
