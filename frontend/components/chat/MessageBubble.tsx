@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { CryptoBadge } from "./CryptoBadge";
 import type { ChatMessage } from "@/hooks/useChatSocket";
 
@@ -25,7 +26,11 @@ export function MessageBubble({ message, isOwn, publicKeyBase64, isLive, senderN
   if (!message.decodable) {
     return (
       <div className={cn("flex flex-col gap-1", isOwn ? "items-end" : "items-start")}>
-        {senderName && <span className="px-1 text-xs text-muted-foreground">{senderName}</span>}
+        {senderName && (
+        <Badge className="font-semibold" style={{ backgroundColor: "#F7931A", color: "#000000" }}>
+          {senderName}
+        </Badge>
+      )}
         <div className="max-w-xs rounded-2xl border border-dashed border-border bg-transparent px-4 py-2 text-sm text-muted-foreground">
           🔒 mensagem de sessão anterior
         </div>
@@ -35,7 +40,11 @@ export function MessageBubble({ message, isOwn, publicKeyBase64, isLive, senderN
 
   return (
     <div className={cn("flex flex-col gap-1", isOwn ? "items-end" : "items-start")}>
-      {senderName && <span className="px-1 text-xs text-muted-foreground">{senderName}</span>}
+      {senderName && (
+        <Badge className="font-semibold" style={{ backgroundColor: "#F7931A", color: "#000000" }}>
+          {senderName}
+        </Badge>
+      )}
       <div
         className={cn(
           "max-w-xs rounded-2xl px-4 py-2 text-sm transition-[filter,opacity] duration-200",
