@@ -1,14 +1,38 @@
 import type { MessagesRepository } from "../../db/messages.repository";
-import type { MessageDto } from "./model";
+import type { ConversationsRepository } from "../../db/conversations.repository";
+import type { ConversationHistoryEntryDto, MessageDto } from "./model";
 
 export abstract class MessagesService {
-  static getConversation(
+  // MessageRow (Drizzle's inferred select type) already matches MessageDto's shape
+  // field-for-field (both camelCase), so no manual mapping is needed anywhere below.
+
+  static getActiveConversation(
     messagesRepository: MessagesRepository,
-    userAId: number,
-    userBId: number
+    conversationsRepository: ConversationsRepository,
+    userId: number,
+    withUserId: number
   ): MessageDto[] {
-    // MessageRow (Drizzle's inferred select type) already matches MessageDto's shape
-    // field-for-field (both camelCase), so no manual mapping is needed here.
-    return messagesRepository.findConversation(userAId, userBId);
+    const conversation = conversationsRepository.findActive(userId, withUserId);
+    if (!conversation) return [];
+    return messagesRepository.findByConversationId(conversation.id);
+  }
+
+  static getHistory(
+    conversationsRepository: ConversationsRepository,
+    userId: number
+  ): ConversationHistoryEntryDto[] {
+    return conversationsRepository.findHistoryForUser(userId);
+  }
+
+  static getConversationMessages(
+    messagesRepository: MessagesRepository,
+    conversationsRepository: ConversationsRepository,
+    userId: number,
+    conversationId: number
+  ): MessageDto[] | null {
+    const conversation = conversationsRepository.findById(conversationId);
+    if (!conversation) return null;
+    if (conversation.userAId !== userId && conversation.userBId !== userId) return null;
+    return messagesRepository.findByConversationId(conversationId);
   }
 }
