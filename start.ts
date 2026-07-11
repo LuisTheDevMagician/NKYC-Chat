@@ -1,22 +1,40 @@
 import { join } from "node:path";
 import { existsSync } from "node:fs";
+import { networkInterfaces } from "node:os";
 
 const root = import.meta.dir;
 
-// ── Terminal styling ────────────────────────────────────────────────────────
+// ── Estilização do terminal ─────────────────────────────────────────────────
 const RESET = "\x1b[0m";
 const BOLD = "\x1b[1m";
 const DIM = "\x1b[2m";
 
+// IP IPv4 desta máquina na rede local (ex.: 192.168.x.x). Usado para substituir o
+// "0.0.0.0" que o `next dev -H 0.0.0.0` imprime na linha "Network" por um endereço que
+// realmente dá para digitar em outro dispositivo. `null` se a máquina não está em rede.
+const LAN_IP: string | null =
+  Object.values(networkInterfaces())
+    .flat()
+    .find((iface) => iface && iface.family === "IPv4" && !iface.internal)?.address ?? null;
+
+/**
+ * Troca o host coringa "0.0.0.0" pelo IP de rede real nas URLs impressas (ex.: a linha "Network"
+ * do Next), para que o endereço mostrado seja de fato acessável de outro dispositivo. Casa apenas
+ * "//0.0.0.0" (dentro de http:// / ws://), preservando o "-H 0.0.0.0" do comando ecoado.
+ */
+function showRealHost(text: string): string {
+  return LAN_IP ? text.replaceAll("//0.0.0.0", `//${LAN_IP}`) : text;
+}
+
 interface AppSpec {
   name: string;
   dir: string;
-  color: string; // ANSI foreground color for this app's tag
-  /** Env keys to strip before spawning (e.g. drop PORT so `next dev` picks 3000). */
+  color: string; // cor de frente (ANSI) para a tag deste app
+  /** Chaves de env a remover antes de subir o processo (ex.: tirar PORT para o `next dev` usar a 3000). */
   omitEnvKeys?: string[];
 }
 
-// Width of the widest tag ("[FRONTEND]") so every prefixed line lines up.
+// Largura da maior tag ("[FRONTEND]") para que toda linha prefixada fique alinhada.
 const TAG_WIDTH = "[FRONTEND]".length;
 
 function tag(name: string, color: string): string {
@@ -24,13 +42,13 @@ function tag(name: string, color: string): string {
   return `${BOLD}${color}${label}${RESET}`;
 }
 
-/** Print a message from the launcher itself under an app's tag. */
+/** Imprime uma mensagem do próprio orquestrador sob a tag de um app. */
 function log(app: AppSpec, message: string): void {
   process.stdout.write(`${tag(app.name, app.color)} ${DIM}${message}${RESET}\n`);
 }
 
-// ── Dependency bootstrap ─────────────────────────────────────────────────────
-/** Ensure `bun install` has run in `app.dir`; run it if node_modules is missing. */
+// ── Bootstrap de dependências ────────────────────────────────────────────────
+/** Garante que `bun install` rodou em `app.dir`; roda se o node_modules estiver ausente. */
 async function ensureDeps(app: AppSpec): Promise<void> {
   if (existsSync(join(app.dir, "node_modules"))) return;
 
@@ -47,11 +65,11 @@ async function ensureDeps(app: AppSpec): Promise<void> {
   log(app, "dependências instaladas.");
 }
 
-// ── Output piping with colored, per-app tags ─────────────────────────────────
+// ── Encaminhamento da saída com tags coloridas por app ───────────────────────
 /**
- * Read a child stream line by line and re-emit each line prefixed with the
- * app's colored tag, so backend and frontend output is visually distinct and
- * clearly attributed in a single terminal.
+ * Lê um stream do processo filho linha a linha e reemite cada linha prefixada com a
+ * tag colorida do app, para que a saída do backend e do frontend seja visualmente
+ * distinta e claramente atribuída em um único terminal.
  */
 async function pipeWithTag(
   stream: ReadableStream<Uint8Array>,
@@ -71,19 +89,19 @@ async function pipeWithTag(
     let newlineIndex: number;
     while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
       const line = buffer.slice(0, newlineIndex);
-      sink.write(`${prefix} ${line}\n`);
+      sink.write(`${prefix} ${showRealHost(line)}\n`);
       buffer = buffer.slice(newlineIndex + 1);
     }
   }
-  if (buffer.length > 0) sink.write(`${prefix} ${buffer}\n`);
+  if (buffer.length > 0) sink.write(`${prefix} ${showRealHost(buffer)}\n`);
 }
 
 function start(app: AppSpec) {
   const env = { ...process.env };
   for (const key of app.omitEnvKeys ?? []) delete env[key];
 
-  // detached: true (setsid) makes the child its own process-group leader, so we
-  // can kill it and everything `bun --watch` / `next dev` spawns under it via -pid.
+  // detached: true (setsid) torna o filho líder do próprio grupo de processos, para que
+  // possamos encerrá-lo — e tudo que `bun --watch` / `next dev` cria sob ele — via -pid.
   const proc = Bun.spawn(["bun", "run", "dev"], {
     cwd: app.dir,
     stdio: ["inherit", "pipe", "pipe"],
@@ -96,18 +114,18 @@ function start(app: AppSpec) {
   return proc;
 }
 
-// ── Boot sequence ────────────────────────────────────────────────────────────
-const backend: AppSpec = { name: "BACKEND", dir: join(root, "backend"), color: "\x1b[36m" }; // cyan
+// ── Sequência de inicialização ───────────────────────────────────────────────
+const backend: AppSpec = { name: "BACKEND", dir: join(root, "backend"), color: "\x1b[36m" }; // ciano
 const frontend: AppSpec = {
   name: "FRONTEND",
   dir: join(root, "frontend"),
   color: "\x1b[35m", // magenta
-  // The root .env sets PORT=3001 for the backend; Bun auto-loads it into this
-  // process's env. Strip it so `next dev` falls back to 3000 instead of colliding.
+  // O .env da raiz define PORT=3001 para o backend; o Bun carrega isso automaticamente no
+  // env deste processo. Removemos essa chave para o `next dev` cair na 3000 em vez de colidir.
   omitEnvKeys: ["PORT"],
 };
 
-// Install missing deps first (sequentially, to keep the output readable).
+// Instala as dependências ausentes primeiro (sequencialmente, para manter a saída legível).
 await ensureDeps(backend);
 await ensureDeps(frontend);
 

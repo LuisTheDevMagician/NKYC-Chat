@@ -1,6 +1,7 @@
 import type { PublicUser } from "../session/session-store";
+import { resolveBackendUrl } from "../config/backend-url";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+const API_URL = resolveBackendUrl(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001");
 
 export interface RegisterKeyMaterial {
   publicKey: string;

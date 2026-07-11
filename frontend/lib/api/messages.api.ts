@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+import { resolveBackendUrl } from "../config/backend-url";
+
+const API_URL = resolveBackendUrl(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001");
 
 export interface MessageDto {
   id: number;

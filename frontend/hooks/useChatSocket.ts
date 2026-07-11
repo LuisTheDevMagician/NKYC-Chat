@@ -7,8 +7,9 @@ import { sessionStore } from "../lib/session/session-store";
 import { exportPublicKey, importPublicKey, encryptWithRsaPublicKey, decryptWithRsaPrivateKey } from "../lib/crypto/rsa";
 import { generateAesKey, exportAesKey, importAesKey, encryptMessage, decryptMessage } from "../lib/crypto/aes";
 import { fetchActiveGroups, type ActiveGroupDto } from "../lib/api/messages.api";
+import { resolveBackendUrl } from "../lib/config/backend-url";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:3000/ws";
+const WS_URL = resolveBackendUrl(process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:3001/ws");
 
 export interface ChatMessage {
   fromUserId: number;
@@ -101,9 +102,9 @@ export function useChatSocket() {
         }
 
         if (event.type === "group-joined") {
-          // A participant accepted — our cached member list is now stale, so refetch
-          // it. Without this, messages we send to the group won't be encrypted/addressed
-          // to the newcomer and never reach them.
+          // Um participante aceitou — nossa lista de membros em cache está desatualizada, então
+          // buscamos de novo. Sem isso, as mensagens que enviamos ao grupo não seriam cifradas/
+          // endereçadas ao recém-chegado e nunca chegariam a ele.
           const groups = await fetchActiveGroups();
           if (!cancelled) setActiveGroups(groups);
           return;
@@ -123,8 +124,8 @@ export function useChatSocket() {
         if (event.type === "message") {
           const isGroupMessage = activeGroupsRef.current.some((g) => g.id === event.conversationId);
           try {
-            // Re-read the private key from storage (rather than reusing the one captured at
-            // connect time) so a tampered/edited key makes new messages fail to decrypt right away.
+            // Relê a chave privada do storage (em vez de reusar a capturada no momento da conexão)
+            // para que uma chave adulterada/editada faça as novas mensagens falharem na descriptografia imediatamente.
             const currentKeyPair = await sessionStore.getKeyPair();
             if (!currentKeyPair) throw new Error("no key pair");
             const aesKeyRaw = await decryptWithRsaPrivateKey(currentKeyPair.privateKey, event.encryptedAesKey);
