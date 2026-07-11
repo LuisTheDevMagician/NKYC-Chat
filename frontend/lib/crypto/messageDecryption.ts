@@ -1,4 +1,4 @@
-import { decryptWithRsaPrivateKey } from "./rsa";
+import { decryptWithRsaPrivateKey, type RsaPrivateKey } from "./rsa";
 import { importAesKey, decryptMessage } from "./aes";
 import type { MessageDto } from "../api/messages.api";
 
@@ -10,13 +10,13 @@ export interface DecryptedStoredMessage {
 }
 
 /**
- * Decrypts a message persisted by the backend. The server already resolves and returns
- * this user's own copy of the AES key (recipient copy, sender's own copy, or null if none
- * was ever stored for them). Only succeeds if the current session's private key matches
- * the one used at send time — once the user has logged out and back in, older rows fall
- * back to the "undecodable" state.
+ * Descriptografa uma mensagem persistida pelo backend. O servidor já resolve e retorna a
+ * cópia da chave AES deste próprio usuário (cópia do destinatário, cópia do próprio remetente,
+ * ou null se nenhuma foi armazenada para ele). Só dá certo se a chave privada da sessão atual
+ * for a mesma usada no momento do envio — depois que o usuário faz logout e login de novo, as
+ * mensagens antigas caem para o estado "não decodificável".
  */
-export async function decryptStoredMessage(row: MessageDto, privateKey: CryptoKey): Promise<DecryptedStoredMessage> {
+export async function decryptStoredMessage(row: MessageDto, privateKey: RsaPrivateKey): Promise<DecryptedStoredMessage> {
   const base = { fromUserId: row.fromUserId, createdAt: row.createdAt };
   if (!row.encryptedAesKey) return { ...base, text: null, decodable: false };
   try {

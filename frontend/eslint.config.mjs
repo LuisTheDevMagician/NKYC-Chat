@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Ativos estáticos (ex.: o worker minificado do node-forge) não devem ser lintados.
+    "public/**",
   ]),
 ]);
 

@@ -1,5 +1,6 @@
 import type { RsaKeyPair } from "../crypto/rsa";
 import { exportPublicKey, exportPrivateKey, importPublicKey, importPrivateKey } from "../crypto/rsa";
+import { sha256Hex } from "../crypto/hash";
 
 export interface PublicUser {
   id: number;
@@ -16,11 +17,8 @@ interface StoredKeyPair {
 
 let currentUser: PublicUser | null = null;
 
-async function sha256Hex(text: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+function hashJson(text: string): string {
+  return sha256Hex(new TextEncoder().encode(text).buffer);
 }
 
 export const sessionStore = {
@@ -38,7 +36,7 @@ export const sessionStore = {
     };
     const json = JSON.stringify(stored);
     sessionStorage.setItem(KEYS_STORAGE_KEY, json);
-    sessionStorage.setItem(INTEGRITY_STORAGE_KEY, await sha256Hex(json));
+    sessionStorage.setItem(INTEGRITY_STORAGE_KEY, hashJson(json));
   },
 
   async getKeyPair(): Promise<RsaKeyPair | null> {
@@ -56,12 +54,12 @@ export const sessionStore = {
     }
   },
 
-  /** Compares the stored keys against the fingerprint saved alongside them, to catch tampering via DevTools. */
+  /** Compara as chaves armazenadas com a impressão digital salva junto delas, para detectar adulteração via DevTools. */
   async checkIntegrity(): Promise<boolean> {
     const json = sessionStorage.getItem(KEYS_STORAGE_KEY);
     const expected = sessionStorage.getItem(INTEGRITY_STORAGE_KEY);
     if (!json || !expected) return false;
-    return (await sha256Hex(json)) === expected;
+    return hashJson(json) === expected;
   },
 
   clear(): void {
