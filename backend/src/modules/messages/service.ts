@@ -3,8 +3,8 @@ import type { ConversationsRepository } from "../../db/conversations.repository"
 import type { ActiveGroupDto, ConversationHistoryEntryDto, MessageDto } from "./model";
 
 export abstract class MessagesService {
-  // MessageRow (Drizzle's inferred select type) already matches MessageDto's shape
-  // field-for-field (both camelCase), so no manual mapping is needed anywhere below.
+  // MessageRow (o tipo de select inferido pelo Drizzle) já bate com o formato de MessageDto
+  // campo a campo (ambos em camelCase), então não é preciso nenhum mapeamento manual abaixo.
 
   static getActiveConversation(
     messagesRepository: MessagesRepository,
@@ -51,9 +51,9 @@ export abstract class MessagesService {
     return messagesRepository.findByConversationIdForUser(conversationId, userId);
   }
 
-  // Used by the history view to label each message with its sender: a historical
-  // (ended) conversation is no longer in the client's live group list, so it can't
-  // map fromUserId -> username on its own.
+  // Usado pela tela de histórico para rotular cada mensagem com seu remetente: uma conversa
+  // histórica (encerrada) não está mais na lista de grupos ativos do cliente, então ele não
+  // consegue mapear fromUserId -> username sozinho.
   static getConversationParticipants(
     conversationsRepository: ConversationsRepository,
     userId: number,

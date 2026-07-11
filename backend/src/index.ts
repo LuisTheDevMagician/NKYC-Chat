@@ -6,10 +6,10 @@ import { authModule } from "./modules/auth";
 import { messagesModule } from "./modules/messages";
 import { chatModule } from "./modules/chat";
 
-// In dev the frontend may be reached from other devices on the same network
-// (e.g. a phone over Wi‑Fi hitting the dev machine's LAN IP). Allow localhost
-// plus private-LAN origins so those credentialed requests aren't blocked by CORS.
-// `credentials: true` forbids the `*` wildcard, so we validate the origin per request.
+// Em dev o frontend pode ser acessado por outros dispositivos na mesma rede
+// (ex.: um celular no Wi‑Fi acessando o IP de rede da máquina de dev). Liberamos localhost
+// mais as origens de rede local privada para que essas requisições com credenciais não sejam
+// bloqueadas pelo CORS. `credentials: true` proíbe o curinga `*`, então validamos a origem por requisição.
 function isAllowedOrigin(origin: string): boolean {
   try {
     const { hostname } = new URL(origin);
@@ -29,7 +29,7 @@ const app = new Elysia()
     cors({
       origin: (request) => {
         const origin = request.headers.get("origin");
-        // No Origin header (same-origin / non-browser clients) → allow.
+        // Sem cabeçalho Origin (mesma origem / clientes que não são navegador) → libera.
         return origin === null || isAllowedOrigin(origin);
       },
       credentials: true,

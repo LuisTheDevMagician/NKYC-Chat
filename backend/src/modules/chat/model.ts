@@ -12,13 +12,13 @@ export const recipientKey = t.Object({
 
 export const clientMessage = t.Object({
   type: t.Literal("message"),
-  // 1:1: recipient's user id, server resolves/creates the conversation.
+  // 1:1: id do usuário destinatário; o servidor resolve/cria a conversa.
   to: t.Optional(t.Number()),
-  // Group (or an already-known conversation): explicit conversation id.
+  // Grupo (ou uma conversa já conhecida): id explícito da conversa.
   conversationId: t.Optional(t.Number()),
   ciphertext: t.String(),
   iv: t.String(),
-  // AES key for this message, encrypted once per accepted participant (including the sender).
+  // Chave AES desta mensagem, cifrada uma vez por participante aceito (incluindo o remetente).
   recipientKeys: t.Array(recipientKey),
 });
 

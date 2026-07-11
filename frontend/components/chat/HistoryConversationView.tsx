@@ -43,7 +43,7 @@ export function HistoryConversationView({ conversationId, onBack }: HistoryConve
     };
   }, [conversationId, currentUserId]);
 
-  // Mirror the live group window: only tag the sender on group messages that aren't ours.
+  // Espelha a janela de grupo ao vivo: só marca o remetente em mensagens de grupo que não são nossas.
   function senderName(fromUserId: number): string | undefined {
     if (!isGroup || fromUserId === currentUserId) return undefined;
     return usernamesById.get(fromUserId);

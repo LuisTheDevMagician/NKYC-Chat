@@ -125,7 +125,7 @@ describe("routeMessage — groups via `conversationId`", () => {
     const bobReceived: unknown[] = [];
     registry.add(connectionFor(alice, aliceReceived));
     registry.add(connectionFor(bob, bobReceived));
-    // carol stays offline
+    // carol permanece offline
 
     const result = routeMessage(registry, messagesRepository, conversationsRepository, alice.id, {
       type: "message",

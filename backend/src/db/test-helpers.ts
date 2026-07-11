@@ -1,6 +1,6 @@
 import type { CreateUserInput } from "./users.repository";
 
-/** Placeholder crypto fields for tests that don't care about the actual key material. */
+/** Campos de criptografia de preenchimento para testes que não se importam com o material de chave real. */
 export function testUserInput(username: string, salt = "s", passwordHash = "h"): CreateUserInput {
   return {
     username,

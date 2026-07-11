@@ -44,7 +44,7 @@ function participantsWithUsers(database: Db, conversationId: number): Participan
     .all() as ParticipantWithUser[];
 }
 
-/** Ends the conversation if it can no longer proceed: everyone has responded and fewer than 2 accepted. */
+/** Encerra a conversa se ela não puder mais continuar: todos já responderam e menos de 2 aceitaram. */
 function endIfUnviable(database: Db, conversationId: number): void {
   const rows = database
     .select()

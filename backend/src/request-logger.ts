@@ -1,11 +1,11 @@
 import { Elysia } from "elysia";
 
-// Lightweight request logger. Makes it easy to see, right in the terminal
-// (under the `[BACKEND]` tag from start.ts), whether requests actually reach the
-// backend — e.g. a login/register attempt from a phone on the same Wi‑Fi — and
-// how each one resolves. `.as("global")` promotes these hooks so they also fire
-// for routes registered inside the feature modules mounted via `.use()`, not
-// just this plugin's own (empty) route table.
+// Logger de requisições leve. Facilita ver, direto no terminal (sob a tag `[BACKEND]`
+// do start.ts), se as requisições realmente chegam ao backend — por exemplo, uma
+// tentativa de login/cadastro de um celular na mesma rede Wi‑Fi — e como cada uma é
+// resolvida. `.as("global")` promove esses hooks para que eles também disparem nas
+// rotas registradas dentro dos módulos de feature montados via `.use()`, e não apenas
+// na tabela de rotas (vazia) deste próprio plugin.
 export const requestLogger = new Elysia({ name: "request-logger" })
   .onRequest(({ request, server }) => {
     const path = new URL(request.url).pathname;

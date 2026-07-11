@@ -24,7 +24,7 @@ export interface MessageWithKey {
   ciphertext: string;
   iv: string;
   createdAt: number;
-  /** This requesting user's copy of the AES key, or null if none was stored for them. */
+  /** A cópia da chave AES deste usuário solicitante, ou null se nenhuma foi armazenada para ele. */
   encryptedAesKey: string | null;
 }
 

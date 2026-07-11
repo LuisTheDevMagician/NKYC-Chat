@@ -84,8 +84,8 @@ describe("chat gateway", () => {
       };
     });
 
-    // alice's own hello triggers a presence broadcast to herself (empty, she's alone) —
-    // wait for it before bob connects, so it can't be mistaken for the later update.
+    // o hello da própria alice dispara um broadcast de presença para ela mesma (vazio, ela está sozinha) —
+    // espera por ele antes do bob conectar, para que não seja confundido com a atualização posterior.
     await waitUntil(() => aliceMessages.length >= 1);
     expect(aliceMessages[0].users).toHaveLength(0);
 
@@ -140,13 +140,13 @@ describe("chat gateway", () => {
       };
     });
 
-    // alice creates a group inviting bob; bob receives the invite with its conversation id.
+    // alice cria um grupo convidando bob; bob recebe o convite com o id da conversa.
     aliceWs.send(JSON.stringify({ type: "create-group", participantIds: [bob.user.id], name: "grupo" }));
     await waitUntil(() => bobMessages.some((m) => m.type === "group-invite"));
     const invite = bobMessages.find((m) => m.type === "group-invite")!;
 
-    // bob accepts. alice (already accepted, as creator) must be told membership changed,
-    // otherwise her cached member list stays stale and she can't address messages to bob.
+    // bob aceita. alice (já aceita, por ser a criadora) precisa ser avisada de que a composição mudou,
+    // caso contrário sua lista de membros em cache fica desatualizada e ela não consegue endereçar mensagens ao bob.
     bobWs.send(
       JSON.stringify({ type: "respond-group-invite", conversationId: invite.conversationId, response: "accepted" })
     );

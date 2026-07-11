@@ -24,8 +24,8 @@ export function routeMessage(
     return { delivered: false };
   }
 
-  // Never trust the client's recipient list blindly — only forward keys meant for
-  // users who are actually accepted participants of this conversation.
+  // Nunca confie cegamente na lista de destinatários do cliente — só encaminha chaves
+  // destinadas a usuários que são de fato participantes aceitos desta conversa.
   const acceptedParticipantIds = new Set(conversationsRepository.findAcceptedParticipantIds(conversationId));
   const recipientKeys = event.recipientKeys.filter((rk) => acceptedParticipantIds.has(rk.userId));
 

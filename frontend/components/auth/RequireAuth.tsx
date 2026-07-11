@@ -20,11 +20,11 @@ export function RequireAuth({ children }: { children: ReactNode }) {
         router.push("/auth/login");
         return;
       }
-      // The private key only ever exists in sessionStorage after a password-authenticated
-      // login (it's unwrapped there, since the password is needed to recover it). A valid
-      // session cookie without a key in storage means this is a fresh tab/browser session —
-      // there's no way to recover the key without the password, so send the user back to
-      // log in again rather than silently generating a throwaway key that can't decrypt anything.
+      // A chave privada só existe no sessionStorage depois de um login autenticado por senha
+      // (é lá que ela é desempacotada, já que a senha é necessária para recuperá-la). Um cookie
+      // de sessão válido sem uma chave no storage significa que esta é uma aba/sessão de navegador
+      // nova — não há como recuperar a chave sem a senha, então mandamos o usuário fazer login de
+      // novo em vez de gerar silenciosamente uma chave descartável que não descriptografa nada.
       if (!(await sessionStore.getKeyPair())) {
         router.push("/auth/login");
         return;

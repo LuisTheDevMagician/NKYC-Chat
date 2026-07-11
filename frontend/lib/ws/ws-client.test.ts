@@ -37,7 +37,7 @@ describe("createChatSocket", () => {
   test("queues a send() made before the socket finishes connecting", () => {
     FakeWebSocket.instances = [];
     const original = globalThis.WebSocket;
-    // @ts-expect-error test double, not a full WebSocket implementation
+    // @ts-expect-error dublê de teste, não é uma implementação completa de WebSocket
     globalThis.WebSocket = FakeWebSocket;
 
     try {
