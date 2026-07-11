@@ -24,6 +24,7 @@
 - [Stack tecnológica](#stack-tecnológica)
 - [Estrutura de pastas](#estrutura-de-pastas)
 - [Como rodar localmente](#como-rodar-localmente)
+- [Acesso por outros dispositivos](#acesso-por-outros-dispositivos)
 - [Variáveis de ambiente](#variáveis-de-ambiente)
 - [Scripts disponíveis](#scripts-disponíveis)
 - [Testes](#testes)
@@ -43,8 +44,10 @@ propõe um chat ponto-a-ponto com troca de chaves RSA e cifragem de mensagens em
 `hashlib` + `cryptography`) como referência.
 
 Este repositório implementa os mesmos conceitos criptográficos do enunciado, mas com uma stack web moderna:
-WebSocket sobre [Elysia](https://elysiajs.com/) no backend e `crypto.subtle` (Web Crypto API nativa do
-navegador) no frontend — sem nenhuma biblioteca de criptografia de terceiros.
+WebSocket sobre [Elysia](https://elysiajs.com/) no backend e a biblioteca auditada
+[node-forge](https://github.com/digitalbazaar/forge) (criptografia em JavaScript puro) no frontend — em
+linha com a orientação do enunciado de *"utilizar bibliotecas auditadas e testadas"* em vez de implementar
+os algoritmos do zero.
 
 ## Funcionalidades
 
@@ -77,7 +80,7 @@ raiz e um orquestrador de desenvolvimento (`start.ts`).
 │                      │                                             │                          │
 └─────────────────────┘                                             └──────────────────────────┘
         │                                                                       │
-        │ crypto.subtle (RSA-OAEP, AES-CBC/GCM, PBKDF2)                        │ PBKDF2-SHA256
+        │ node-forge (RSA-OAEP, AES-CBC/GCM, PBKDF2)                          │ PBKDF2-SHA256
         ▼                                                                       ▼
   chave privada nunca sai                                              apenas hash + salt
   do navegador em texto puro                                           são persistidos
@@ -90,10 +93,12 @@ raiz e um orquestrador de desenvolvimento (`start.ts`).
   `presence-broadcaster` (presença e "digitando"). Uma camada `src/db/` concentra os repositórios; um
   guard de autenticação (`.macro()` do Elysia) é reaproveitado tanto nas rotas HTTP quanto no WebSocket.
 - **Frontend** (`frontend/`) — Next.js 16 (App Router) + React 19 + Tailwind v4 + shadcn/ui (sobre Base UI).
-  `lib/crypto/` concentra toda a criptografia (RSA, AES, empacotamento de chaves, base64) via
-  `crypto.subtle` nativo; `lib/ws/` implementa o protocolo e o cliente WebSocket; `lib/api/` faz as
-  chamadas REST; `hooks/` expõe `useAuth` e `useChatSocket` como a "API" de estado da aplicação para os
-  componentes em `components/{auth,chat,background}/`.
+  `lib/crypto/` concentra toda a criptografia (RSA, AES, empacotamento de chaves, hash, base64) via
+  `node-forge`; `lib/ws/` implementa o protocolo e o cliente WebSocket; `lib/api/` faz as chamadas REST
+  (com `lib/config/backend-url.ts` resolvendo o host do backend a partir da origem da página, para
+  funcionar também quando o app é aberto por outro dispositivo na rede); `hooks/` expõe `useAuth` e
+  `useChatSocket` como a "API" de estado da aplicação para os componentes em
+  `components/{auth,chat,background}/`.
 - **`start.ts`** (raiz) — orquestrador de desenvolvimento: garante que as dependências de cada app estão
   instaladas (rodando `bun install` automaticamente se faltar `node_modules`), sobe backend e frontend em
   paralelo, cada um em seu próprio grupo de processos, e imprime a saída de cada app com uma tag colorida
@@ -101,13 +106,20 @@ raiz e um orquestrador de desenvolvimento (`start.ts`).
 
 ## Segurança e criptografia
 
-Toda a criptografia é feita com a **Web Crypto API nativa** (`crypto.subtle`) no navegador e o módulo
-`node:crypto`/Web Crypto do Bun no servidor — nenhuma dependência externa de criptografia.
+Toda a criptografia do lado do cliente é feita com o **[node-forge](https://github.com/digitalbazaar/forge)**
+(JavaScript puro) no navegador; o servidor usa apenas o `node:crypto`/Web Crypto do Bun para o hash de senha.
+
+> **Por que node-forge e não `crypto.subtle`?** A implementação original usava a Web Crypto API nativa
+> (`crypto.subtle`), mas ela só está disponível em *contextos seguros* (HTTPS ou `localhost`). Ao abrir o
+> app de outro dispositivo pelo IP da rede (ex.: `http://192.168.x.x:3000`), o contexto é inseguro e o
+> `crypto.subtle` fica `undefined` — o cadastro/login quebravam. O node-forge, por ser JS puro, funciona em
+> qualquer contexto, mantendo os mesmos algoritmos e parâmetros. O transporte segue em texto puro (`ws://`),
+> o que permite inclusive demonstrar a cifragem das mensagens com o Wireshark, como pede o enunciado.
 
 | Camada | Algoritmo | Onde | Por quê |
 |---|---|---|---|
 | Senha de login | PBKDF2-SHA256 (100.000 iterações) + salt aleatório de 16 bytes | Servidor (`backend/src/modules/auth/password.ts`) | A senha em si nunca é armazenada; só o hash e o salt. Comparação feita em tempo constante. |
-| Par de chaves de sessão | RSA-OAEP 2048 bits, gerado em `crypto.subtle.generateKey` | Navegador, no cadastro | A chave privada nunca é transmitida em texto puro — nem mesmo para o próprio backend. |
+| Par de chaves de sessão | RSA-OAEP 2048 bits (SHA-256), gerado com `node-forge` | Navegador, no cadastro | A chave privada nunca é transmitida em texto puro — nem mesmo para o próprio backend. A geração usa Web Workers (com fallback síncrono) para não travar a interface. |
 | Guarda da chave privada | AES-GCM-256, com a chave derivada da senha via PBKDF2-SHA256 (210.000 iterações) | Navegador (`lib/crypto/keyWrapping.ts`) | Permite recuperar o **mesmo** par de chaves em logins futuros (histórico continua legível) sem nunca persistir a chave privada em claro — só a versão cifrada (`wrappedPrivateKey`) é enviada ao servidor. |
 | Conteúdo da mensagem | AES-256-CBC, com uma chave simétrica **nova a cada mensagem** | Navegador (`lib/crypto/aes.ts`) | Cifra o texto da mensagem; a chave AES efêmera é descartada após o uso. |
 | Distribuição da chave da mensagem | RSA-OAEP com a chave pública de **cada destinatário** | Navegador, antes de enviar | Em vez de um segredo simétrico compartilhado, a chave AES da mensagem é cifrada uma vez por participante aceito (1:1 = 2 cópias; grupo = N cópias, uma por membro + remetente) — é assim que o chat em grupo funciona sem trocar a criptografia ponta a ponta por um modelo de "servidor confiável". |
@@ -126,6 +138,7 @@ Toda a criptografia é feita com a **Web Crypto API nativa** (`crypto.subtle`) n
 | Banco de dados | `bun:sqlite` via [Drizzle ORM](https://orm.drizzle.team/) | — |
 | Estilo | — | Tailwind CSS v4 |
 | Componentes de UI | — | [shadcn/ui](https://ui.shadcn.com/) sobre [Base UI](https://base-ui.com/) |
+| Criptografia | `node:crypto`/Web Crypto do Bun (hash de senha) | [node-forge](https://github.com/digitalbazaar/forge) (RSA, AES, PBKDF2, SHA-256) |
 | Extras | `@elysiajs/cors` | `@tsparticles` (fundo animado), `lucide-react` (ícones) |
 | Testes | `bun test` (built-in) | `bun test` (built-in) |
 
@@ -154,17 +167,44 @@ segurancafinal/
     │   ├── background/              # fundo de partículas
     │   └── ui/                      # componentes shadcn/ui (Button, Dialog, Badge, ...)
     ├── hooks/                       # useAuth, useChatSocket
+    ├── public/forge/                # worker do node-forge (geração de primos em Web Worker)
     └── lib/
-        ├── crypto/                  # RSA, AES, empacotamento de chaves, base64 (tudo crypto.subtle)
+        ├── crypto/                  # RSA, AES, empacotamento de chaves, hash, base64 (tudo node-forge)
         ├── ws/                      # protocolo (tipos) + cliente WebSocket
         ├── api/                     # chamadas REST (auth, mensagens)
+        ├── config/                  # backend-url.ts (resolve o host do backend pela origem da página)
         └── session/                 # estado de sessão do usuário no cliente
 ```
 
 ## Como rodar localmente
 
-**Pré-requisitos:** [Bun](https://bun.sh) 1.3 ou superior. Não é necessário Node.js instalado à parte (o Bun
-cobre backend, testes e o dev server do Next).
+**Pré-requisitos:** [Bun](https://bun.com) 1.3 ou superior. Não é necessário Node.js instalado à parte (o
+Bun cobre backend, testes e o dev server do Next).
+
+### Instalando o Bun
+
+Se você ainda não tem o Bun, instale seguindo a [documentação oficial](https://bun.com/docs/installation):
+
+```bash
+# macOS e Linux
+curl -fsSL https://bun.com/install | bash
+```
+
+```powershell
+# Windows (PowerShell)
+powershell -c "irm bun.sh/install.ps1|iex"
+```
+
+Também dá para instalar via gerenciadores de pacote — `npm install -g bun`, `brew install oven-sh/bun/bun`
+(Homebrew) ou `scoop install bun` (Scoop). Depois, confira se ficou tudo certo:
+
+```bash
+bun --version   # deve mostrar 1.3.x ou superior
+```
+
+> Já tem o Bun instalado? Atualize com `bun upgrade` (ou `brew upgrade bun` / `scoop update bun`).
+
+### Clonando o projeto
 
 ```bash
 git clone https://github.com/LuisTheDevMagician/NKYC-Chat.git
@@ -195,6 +235,35 @@ cd frontend && bun install && bun run dev  # http://localhost:3000
 Depois é só abrir **http://localhost:3000**, criar uma conta e, em outra aba/navegador anônimo, criar uma
 segunda conta para testar o chat entre os dois usuários.
 
+## Acesso por outros dispositivos
+
+Como o enunciado pede comunicação **entre dois usuários em rede**, o app pode ser acessado de outro
+dispositivo (outro PC, celular) na **mesma rede Wi-Fi/LAN**. Já vem configurado para isso:
+
+- O dev server do Next escuta em todas as interfaces (`next dev -H 0.0.0.0`), não só em `localhost`.
+- O CORS do backend libera as origens de rede local privada (`10.x`, `192.168.x`, `172.16–31.x`).
+- O frontend deriva o host do backend a partir da **origem da página** (`lib/config/backend-url.ts`): ao
+  abrir por um IP de rede, as chamadas de API/WebSocket vão para esse mesmo IP na porta `3001` — sem
+  precisar editar o `.env`.
+
+**Passo a passo:**
+
+1. Suba o projeto na máquina que servirá de host: `bun start.ts`.
+2. Descubra o IP dessa máquina na rede:
+
+   ```bash
+   hostname -I | awk '{print $1}'   # ex.: 192.168.31.232
+   ```
+
+3. No outro dispositivo (mesma rede), abra `http://SEU_IP:3000` — ex.: `http://192.168.31.232:3000`.
+
+> **Se não conectar**, o suspeito mais provável é o **firewall** do host bloqueando as portas. Libere-as
+> (ou desative o firewall temporariamente para o teste):
+>
+> ```bash
+> sudo ufw allow 3000/tcp && sudo ufw allow 3001/tcp
+> ```
+
 ## Variáveis de ambiente
 
 Há um único `.env` (gitignorado) na **raiz** do repositório — não em `frontend/` nem em `backend/` — lido
@@ -206,6 +275,11 @@ por mecanismos diferentes em cada app (detalhes em `CLAUDE.md`).
 | `DB_PATH` | backend | `nkyc.db` | Caminho do arquivo SQLite. Use `:memory:` para testes. |
 | `NEXT_PUBLIC_API_URL` | frontend | `http://localhost:3001` | Base URL das chamadas REST. |
 | `NEXT_PUBLIC_WS_URL` | frontend | `ws://localhost:3001/ws` | URL do endpoint WebSocket. |
+
+> No navegador, quando essas URLs apontam para `localhost` mas a página é aberta por um IP de rede, o host é
+> **reescrito automaticamente** para o mesmo da página (mantendo a porta). Por isso o acesso por outro
+> dispositivo funciona sem editar o `.env`. Um valor que não seja `localhost` (ex.: um domínio de produção)
+> é respeitado como está.
 
 ## Scripts disponíveis
 
@@ -226,8 +300,8 @@ Cada app roda seus próprios scripts a partir do seu próprio diretório — nã
 | Comando | Descrição |
 |---|---|
 | `bun install` | Instala as dependências. |
-| `bun run dev` | Sobe o servidor de desenvolvimento do Next. |
-| `bun test` | Roda os testes (apenas os helpers de criptografia). |
+| `bun run dev` | Sobe o dev server do Next escutando em todas as interfaces (`-H 0.0.0.0`), para acesso na rede. |
+| `bun test` | Roda os testes (helpers de criptografia + resolução da URL do backend). |
 | `bunx tsc --noEmit` | Checagem de tipos. |
 | `bun run lint` | Lint com ESLint. |
 | `bun run build` / `bun run start` | Build de produção / sobe o build. |
@@ -236,13 +310,14 @@ Cada app roda seus próprios scripts a partir do seu próprio diretório — nã
 
 ```
 backend:  59 testes · 131 assertions · 14 arquivos
-frontend: 12 testes ·  18 assertions ·  6 arquivos
+frontend: 17 testes ·  25 assertions ·  7 arquivos
 ```
 
 No backend, sempre rode os testes com `DB_PATH=:memory:` — o `db` singleton padrão aponta para o arquivo
 `nkyc.db` em disco, e uma segunda rodada contra o mesmo arquivo falha com `409 username_taken` para
-qualquer usuário de teste deixado por uma execução anterior. No frontend, os testes cobrem apenas
-`lib/crypto/` — o Web Crypto API se comporta de forma idêntica no Bun e no navegador.
+qualquer usuário de teste deixado por uma execução anterior. No frontend, os testes cobrem o `lib/crypto/`
+(o node-forge se comporta de forma idêntica no Bun e no navegador) e a resolução da URL do backend em
+`lib/config/`.
 
 ## Protocolo WebSocket
 
@@ -291,8 +366,8 @@ conceitos de criptografia pedidos no enunciado (troca de chaves assimétricas, c
 de senha com salt) de forma didática e auditável. Alguns pontos que mereceriam atenção adicional antes de
 qualquer uso em produção:
 
-- O backend serve em HTTP simples em desenvolvimento (sem TLS) — adequado para localhost, não para expor
-  a outros dispositivos/redes sem um certificado válido.
+- O backend serve em HTTP simples (sem TLS). É adequado para `localhost` e para uma rede local confiável
+  (o cenário do trabalho), mas não deve ser exposto à internet aberta sem um certificado válido.
 - Não há limitação de taxa (*rate limiting*) nas rotas de autenticação.
 - O par de chaves RSA é gerado no cadastro e nunca rotacionado.
 
